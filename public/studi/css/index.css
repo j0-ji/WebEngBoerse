@@ -2,7 +2,7 @@
 body, h1, h2, h3, h4, p {
     padding: 0;
     margin: 0;
-    font-family: Simplifica, sans-serif;
+    font-family: Arial, sans-serif;
 }
 
 h1 {
@@ -69,11 +69,70 @@ header > h1 {
 }
 
 /* STOCKS */
-.stocks {
+#stocks {
     grid-column: 2 / 3;
     grid-row: 2 / -1;
 
-    background-color: goldenrod;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, 310px);
+    grid-auto-rows: max-content;
+
+    background-color: lightgrey;
+    border-radius: 5px;
+    padding: 6px;
+    gap: 10px;
+}
+
+.stock {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 145px 25px 25px;
+    gap: 5px;
+
+    width: 290px;
+    height: inherit;
+    padding: 10px;
+
+    background-color: grey;
+    border-radius: 5px;
+}
+
+.stock-chart {
+    grid-column: 1 / 3;
+    grid-row: 1 / 2;
+
+    width: 290px;
+    height: 145px;
+
+    background-color: white;
+}
+
+.polyline-graph {
+    fill: none;
+    stroke: red;
+    stroke-width: 15;
+}
+
+.stock-name {
+    grid-column: 1 / 3;
+    grid-row: 2 / 3;
+
+    margin: auto;
+    overflow: hidden;
+}
+
+.stock-price {
+    grid-column: 1 / 2;
+    grid-row: 3 / 4;
+
+    margin: auto;
+}
+
+.stock-count {
+    grid-column: 2 / 3;
+    grid-row: 3 / 4;
+
+    margin: auto;
 }
 
 /* RANKING */

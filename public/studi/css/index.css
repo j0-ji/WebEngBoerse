@@ -45,6 +45,7 @@ header {
     flex-direction: row;
     gap: 20px;
     overflow: hidden;
+    border-bottom-right-radius: 5px;
 
     background-color: lightgrey;
 }
@@ -60,13 +61,15 @@ header > h1 {
     margin: auto 0 auto 0;
 }
 
-/* OPEN TRADES */
-.open-trades {
+/* PORTFOLIO */
+#portfolio {
     grid-column: 1 / 2;
     grid-row: 2 / -1;
 
     background-color: goldenrod;
 }
+
+
 
 /* STOCKS */
 #stocks {
@@ -78,7 +81,8 @@ header > h1 {
     grid-auto-rows: max-content;
 
     background-color: lightgrey;
-    border-radius: 5px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
     padding: 6px;
     gap: 10px;
 }
@@ -86,7 +90,7 @@ header > h1 {
 .stock {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: 145px 25px 25px;
+    grid-template-rows: 145px 25px 25px 1fr;
     gap: 5px;
 
     width: 290px;
@@ -95,6 +99,48 @@ header > h1 {
 
     background-color: grey;
     border-radius: 5px;
+}
+
+.stock-hl-green {
+    background-color: forestgreen;
+}
+
+.stock-hl-red {
+    background-color: red;
+}
+
+.stock:hover .buy-sell {
+    display: grid;
+}
+
+.buy-sell {
+    grid-column: 1 / 3;
+    grid-row: 4 / 5;
+
+    display: none;
+    grid-auto-flow: row;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+
+    height: 30px;
+}
+
+.button {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.sell100 {
+    background-color: darkred;
+    color: white;
+}
+
+.buy100 {
+    background-color: darkgreen;
+    color: white;
 }
 
 .stock-chart {
@@ -109,7 +155,7 @@ header > h1 {
 
 .polyline-graph {
     fill: none;
-    stroke: red;
+    stroke: blue;
     stroke-width: 15;
 }
 

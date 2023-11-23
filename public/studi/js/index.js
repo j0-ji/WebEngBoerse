@@ -43,7 +43,7 @@ async function getUserData() {
 }
 
 function getPercent() {
-    return (this.initBalance / this.balance * 100) - 100;
+    return (this.balance / this.initBalance * 100) - 100;
 }
 
 //=================================================================//
@@ -101,6 +101,28 @@ function createStocksUI() {
         let stockPrice = document.createElement('p');
         let stockCount = document.createElement('p');
 
+        let buySell = document.createElement('div');
+        let buy100 = document.createElement('p');
+        let sell100 = document.createElement('p');
+
+        sell100.classList.add('button');
+        sell100.classList.add('sell100');
+        sell100.innerText = '-100';
+        sell100.addEventListener('click', async () => {
+            await tradeStock(stocks[i].name, -100)
+        });
+
+        buy100.classList.add('button');
+        buy100.classList.add('buy100');
+        buy100.innerText = '+100';
+        buy100.addEventListener('click', async () => {
+            await tradeStock(stocks[i].name, 100)
+        });
+
+        buySell.classList.add('buy-sell');
+        buySell.appendChild(sell100);
+        buySell.appendChild(buy100);
+
         polyline.classList.add('polyline-graph');
 
         svg.classList.add('stock-chart')
@@ -124,6 +146,7 @@ function createStocksUI() {
         stock.appendChild(stockName);
         stock.appendChild(stockPrice);
         stock.appendChild(stockCount);
+        stock.appendChild(buySell);
 
         stocksUI.appendChild(stock);
     }
@@ -154,6 +177,69 @@ function updateStocksUI() {
     }
 }
 
+function highlightStocks() {
+    let stockUIs = document.getElementsByClassName('stock');
+
+    for( let i = 0; i < stocks.length; i++) {
+        if(stocks[i].history[9] > average(stocks[i].history)) {
+            stockUIs[i].classList.add('stock-hl-green');
+            try {
+                stockUIs[i].classList.remove('stock-hl-red');
+            } catch (ignored) {}
+        } else if (stocks[i].history[9] === average(stocks[i].history)) {
+            try {
+                stockUIs[i].classList.remove('stock-hl-green');
+                stockUIs[i].classList.remove('stock-hl-red');
+            } catch (ignored) {}
+        } else if (stocks[i].history[9] < average(stocks[i].history)) {
+            stockUIs[i].classList.add('stock-hl-red');
+            try {
+                stockUIs[i].classList.remove('stock-hl-green');
+            } catch (ignored) {}
+        }
+    }
+}
+
+function average(arr) {
+    let num = 0;
+
+    arr.forEach(n => {
+        num += n;
+    });
+
+    return num/arr.length;
+}
+
+//=================================================================//
+//=== PORTFOLIO ===================================================//
+//=================================================================//
+
+//===== BUY/SELL
+async function tradeStock(_stockName, _count) {
+    let response = await fetch('/api/umsaetze', {
+        method: 'POST',
+        headers: {
+            'accept':'application/json',
+            'Content-Type':'application/json',
+        },
+        body: JSON.stringify({
+            "aktie": {
+                "name": _stockName
+            },
+            "anzahl": _count
+        })
+    });
+
+    if (response.ok) {
+        return await response.json();
+    } else {
+        // TODO [!]: log failure into log window (for user)
+        console.log(response.status + ' :: ' + response.statusText)
+    }
+}
+
+//===== PORTFOLIO STOCKS
+
 //=================================================================//
 //=== INIT ========================================================//
 //=================================================================//
@@ -179,5 +265,6 @@ window.onload = async () => {
         await updateBalance(user);
         await updateStocks();
         updateStocksUI();
+        highlightStocks();
     }, 500)
 }

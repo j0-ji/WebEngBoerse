@@ -5,7 +5,9 @@
 //=================================================================//
 
 function isEmpty(_obj) {
-    return Object.keys(_obj).length === 0 /* && _obj.constructor === Object */ ;
+    try{
+        return Object.keys(_obj).length === 0 /* && _obj.constructor === Object */ ;
+    } catch (ignored) {}
 }
 
 function correctUhrzeit(_uhrzeit) {
@@ -19,7 +21,7 @@ function correctUhrzeit(_uhrzeit) {
     return temp2
 }
 
-/* VERY DUMB TRY TO mAKE AN ARRAYLIST IN JS :|
+/* VERY DUMB TRY TO MAKE AN ARRAYLIST IN JS :|
 
 class ArrayList {
     #array;
@@ -162,12 +164,6 @@ async function getUserData() {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        console.error(response.status + ' :: ' + response.statusText);
-        errors.arr.push({
-            code:response.status,
-            message:'SERVER ERROR: The server could not be reached.',
-        });
     }
 }
 
@@ -207,12 +203,6 @@ async function getStocks() {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        console.error(response.status + ' :: ' + response.statusText);
-        errors.arr.push({
-            code:response.status,
-            message:'SERVER ERROR: The server could not be reached.',
-        });
     }
 }
 
@@ -458,18 +448,17 @@ async function tradeStock(_stockName, _count) {
     if (response.ok) {
         return await response.json();
     } else {
-        console.error(response.status + ' :: ' + response.statusText);
-        errors.arr.push({
-            code:response.status,
-            message:'TRANSACTION: Invalid amount (' + _count + ') of stocks (' + _stockName + '). Transaction failed.',
-        });
-        return {};
+        errors.arr.push('TRANSACTION: Invalid amount (' + _count + ') of stocks (' + _stockName + '). Transaction failed.');
     }
 }
 
 //===== PORTFOLIO STOCKS
 let portfolio = {}
 
+/**
+ * Function fetching the players current portfolio-data.
+ * @return Object - player-portfolio
+ * */
 async function getPortfolio() {
     let response = await fetch('/api/depot', {
         method: 'GET',
@@ -478,15 +467,14 @@ async function getPortfolio() {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        console.error(response.status + ' :: ' + response.statusText);
-        errors.arr.push({
-            code:response.status,
-            message:'SERVER ERROR: The server could not be reached.',
-        });
     }
 }
 
+/**
+ * Creates the UI for one position Element in the list of the currently open positions of the player
+ * @param _i - Zählvariable, damit eindeutig ist um welche Aktie es sich handelt
+ * @return HTMLElement - returns the ready to use HTML-Element
+ * */
 function createPositionUI (_i) {
     let position = document.createElement('div');
     let name = document.createElement('p');
@@ -542,6 +530,9 @@ function createPositionUI (_i) {
     return position;
 }
 
+/**
+ * Initializes the portfolio UI. Gets current Portfolio data from Server and creates Position-UIs if needed.
+ * */
 async function initPortfolioUI() {
     portfolio = await getPortfolio();
     let positions = document.getElementById('positions');
@@ -558,6 +549,10 @@ async function initPortfolioUI() {
     document.getElementById('portfolio-value').innerText = portfolio.wert;
 }
 
+/**
+ * Updates the portfolio UI. If a position currently does not have any UI, this function creates it.
+ * Furthermore, it updates the Portfolio value UI-Element.
+ * */
 function updatePortfolioUI() {
     document.getElementById('portfolio-value').innerText = Math.floor(portfolio.value);
 
@@ -591,6 +586,9 @@ function updatePortfolio() {
 //=== RANKING =====================================================//
 //=================================================================//
 
+/**
+ * Function for getting the Portfolio values and according player names of everyone.
+ * */
 async function getPortfolioAll() {
     let response = await fetch('/api/depotAlle', {
         method: 'GET',
@@ -599,15 +597,13 @@ async function getPortfolioAll() {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        console.error(response.status + ' :: ' + response.statusText);
-        errors.arr.push({
-            code:response.status,
-            message:'SERVER ERROR: The server could not be reached.',
-        });
     }
 }
 
+/**
+ * Function creating the ranking UI. Caution: The prerequisite for guaranteeing functionality
+ * is that the number of players does not change without a server restart.
+ * */
 function createRankingUI(sortedRanking) {
     let ranking = document.getElementById('ranking-list');
 
@@ -632,6 +628,9 @@ function createRankingUI(sortedRanking) {
     }
 }
 
+/**
+ * An updater for the ranking UI. It updates the positions of the players according their wealth.
+ * */
 function updateRankingUI(sortedRanking) {
     let ranking = document.getElementsByClassName('rank');
 
@@ -647,6 +646,11 @@ function updateRankingUI(sortedRanking) {
 
 let news = {};
 
+/**
+ * Function for getting News from the server. News are about players buying/selling stocks and
+ * the amounts of stocks in those trades.
+ * @param _timeStamp - time in milliseconds (1 gets all news from the server)
+ * */
 async function getNews(_timeStamp) {
     let response = await fetch('/api/nachrichten?letzteZeit=' + _timeStamp, {
         method: 'GET',
@@ -655,15 +659,13 @@ async function getNews(_timeStamp) {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        console.error(response.status + ' :: ' + response.statusText);
-        errors.arr.push({
-            code:response.status,
-            message:'SERVER ERROR: The server could not be reached.',
-        });
     }
 }
 
+/**
+ * function for updating the news-Object used to manage the last X (news.maxNews) news.
+ * Older news get removed to not fill the DOM too much.
+ * */
 async function updateNews() {
     // get newest news
     let temp = await getNews(news.latestTimeStamp);
@@ -693,6 +695,10 @@ async function updateNews() {
     }
 }
 
+/**
+ * Function creating the UI for each news.
+ * @param _newsData - data used to fill the created UI
+ * */
 function createNewsUI(_newsData) {
     let newsList = document.getElementById('news-list');
     let newsBlock = document.createElement('div');
@@ -712,6 +718,9 @@ function createNewsUI(_newsData) {
     newsList.prepend(newsBlock);
 }
 
+/**
+ * Updates a given UI-Element with new Data
+ * */
 function updateNewsUI(_newsElement, _newsData) {
     _newsElement.firstChild.innerText = correctUhrzeit(_newsData.uhrzeit);
     _newsElement.lastChild.innerText = _newsData.text;
@@ -727,7 +736,13 @@ function adaptNewsMessage(_text) {
     return temp[0] + ': ' + temp[1] + '\n' + temp[2];
 }
 
-function updateNewsHandler() {
+/**
+ * Manager for handling news. If the list of news is shorter than the max, it adds new UI-Elements. If max news UI-Elements count
+ * is reached, the existing Elements get updated instead of deleted and recreated
+ * */
+// Sounded nice on paper, but now I'm not sure if it is really that much more efficient than creating new UI-Elements
+// and then deleting the oldest ones, which are above the limit...
+function newsManager() {
     if(news.updated) {
         // get the list of news we currently have displayed
         // IMPORTANT
@@ -754,44 +769,52 @@ function updateNewsHandler() {
 
 let errors = {}
 
-function updateErrors () {
-    if(errors.arr.length !== errors.lastLength) {
-        while(errors.arr.length > errors.maxErrors) {
-            errors.arr.shift();
-        }
-        errors.lastLength = errors.arr.length;
-        errors.updated = true;
-    } else {
-        errors.updated = false;
-    }
-}
-
+/**
+ * Function for creating an error UI-Element and filling it with the given message.
+ * @param _errorData - String containing the error-data
+ * */
 function createErrorUI(_errorData) {
     let errorLog = document.getElementById('error-log');
     let errorBlock = document.createElement('div');
-    let errorCode = document.createElement('h4');
     let errorMessage = document.createElement('p');
 
-    errorCode.classList.add('error-code');
-    errorCode.innerText = _errorData.code;
-
     errorMessage.classList.add('error-message');
-    errorMessage.innerText = _errorData.message;
+    errorMessage.innerText = _errorData;
 
-    errorBlock.classList.add('news');
-    errorBlock.appendChild(errorCode);
+    errorBlock.classList.add('errors');
+    errorBlock.classList.add('red-error')
     errorBlock.appendChild(errorMessage);
 
     errorLog.prepend(errorBlock);
+
+
+    setTimeout(() => {
+        errorBlock.classList.remove('red-error');
+    }, 500);
 }
 
+/**
+ * Updates the given UI-Element with the given error-data
+ * @param _errorElement - DOMElement to get new text
+ * @param _errorData - String containing the error-data
+ * */
 function updateErrorUI(_errorElement, _errorData) {
-    _errorElement.firstChild.innerText = correctUhrzeit(_errorData.code);
-    _errorElement.lastChild.innerText = _errorData.message;
+    _errorElement.firstChild.innerText = _errorData;
 }
 
-function updateErrorHandler() {
-    if(errors.updated) {
+/**
+ * Manager for handling errors. If the list of errors is shorter than the max, it adds new UI-Elements. If max error UI-Elements count
+ * is reached, the existing Elements get updated instead of deleted and recreated
+ * */
+// Same issue as above... sounded nice on paper, but now I'm not sure if it is really that much more efficient than creating new UI-Elements
+// and then deleting the oldest ones, which are above the limit...
+function errorManager() {
+    if(errors.arr.length > errors.maxErrors || errors.arr.length > errors.lastLength) {
+        // if more than max allowed errors, remove the oldest errors
+        while (errors.arr.length > errors.maxErrors) {
+            errors.arr.shift();
+        }
+
         // get the list of errors we currently have displayed
         let list = document.getElementsByClassName('errors');
 
@@ -801,9 +824,18 @@ function updateErrorHandler() {
             if( i >= list.length) {
                 createErrorUI(errors.arr[i]);
             } else {
+                if(i === errors.arr.length - 1) {
+                    // the effect is unfortunately not the same, compared to creating a new Element
+                    // beacause now it not only fades out but fades in and then out...
+                    list[list.length - (i+1)].classList.add('red-error');
+                    setTimeout(() => {
+                        list[list.length - (i+1)].classList.remove('red-error');
+                    }, 600);
+                }
                 updateErrorUI(list[list.length - (i+1)], errors.arr[i]);
             }
         }
+        errors.lastLength = errors.arr.length;
     }
 }
 
@@ -829,7 +861,6 @@ window.onload = async () => {
     createStocksUI();
 
     // PORTFOLIO
-    portfolio = await getPortfolio();
     await initPortfolioUI();
 
     // RANKING
@@ -844,37 +875,37 @@ window.onload = async () => {
     news.latestTimeStamp = 1;
     news.maxNews = 20;
     news.updated = false;
-    console.log(news);
 
     // ERROR-LOG
     errors.arr = [];
     errors.lastLength = errors.arr.length;
-    errors.updated = false;
     errors.maxErrors = 10;
 
-    let errorUpdater = setInterval(() => {
-        updateErrors();
-        updateErrorHandler();
-    }, 500);
-
     let updater = setInterval(async () => {
+        try {
+            await updateBalance(user);
 
-        await updateBalance(user);
+            await updateStocks();
+            updateStocksUI();
+            highlightStocks();
 
-        await updateStocks();
-        updateStocksUI();
-        highlightStocks();
+            updatePortfolio();
+            updatePortfolioUI();
 
-        updatePortfolio();
-        updatePortfolioUI();
+            let ranking = await getPortfolioAll();
+            ranking.sort((player1, player2) => {
+                return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
+            });
+            updateRankingUI(ranking);
 
-        let ranking = await getPortfolioAll();
-        ranking.sort((player1, player2) => {
-            return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
-        });
-        updateRankingUI(ranking);
+            await updateNews();
+            newsManager();
+        } catch (error) {
+            if(errors.arr[errors.arr.length-1] !== 'SERVER ERROR: Connection could not be established') {
+                errors.arr.push('SERVER ERROR: Connection could not be established');
+            }
+        }
 
-        await updateNews();
-        updateNewsHandler();
+        errorManager();
     }, 500);
 }

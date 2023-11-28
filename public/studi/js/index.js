@@ -5,13 +5,15 @@
 //=================================================================//
 
 function isEmpty(_obj) {
-    return Object.keys(_obj).length === 0 /* && _obj.constructor === Object */ ;
+    try{
+        return Object.keys(_obj).length === 0 /* && _obj.constructor === Object */ ;
+    } catch (ignored) {}
 }
 
 function correctUhrzeit(_uhrzeit) {
     let temp = _uhrzeit.split(':');
     let temp2;
-    if (parseInt(temp[0]) > 9 && parseInt(temp[1]) === 0) {
+    if (parseInt(temp[1]) === 0) {
         temp2 = temp[0] + ':00'
     } else {
         temp2 = _uhrzeit;
@@ -19,7 +21,7 @@ function correctUhrzeit(_uhrzeit) {
     return temp2
 }
 
-/* VERY DUMB TRY TO mAKE AN ARRAYLIST IN JS :|
+/* VERY DUMB TRY TO MAKE AN ARRAYLIST IN JS :|
 
 class ArrayList {
     #array;
@@ -134,6 +136,7 @@ function updateName (_user) {
  * */
 async function updateBalance (_user) {
     let data = await getUserData();
+
     _user.balance = data.kontostand;
 
     let balanceTag = document.getElementById('balance');
@@ -149,7 +152,6 @@ async function updateBalance (_user) {
 
 /**
  * Function fetching the current user-data.
- * TODO [!]: implement error logging.
  * DO NOT OVERWRITE USER-OBJ. WITH THE OUTPUT OF THIS FUNCTION!
  * THE USER-OBJ. HAS MORE DATA STORED THAN HERE IS RETURNED.
  * ONLY COPY NEEDED DATA.
@@ -162,9 +164,6 @@ async function getUserData() {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
     }
 }
 
@@ -192,7 +191,6 @@ let stocks = {};
 
 /**
  * Function fetching the current stocks-data.
- * TODO [!]: implement error logging.
  * DO NOT OVERWRITE STOCKS-OBJ. WITH THE OUTPUT OF THIS FUNCTION!
  * THE STOCKS-OBJ. HAS MORE DATA STORED THAN HERE IS RETURNED.
  * ONLY COPY NEEDED DATA.
@@ -205,9 +203,6 @@ async function getStocks() {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
     }
 }
 
@@ -240,7 +235,6 @@ async function updateStocks() {
         }
         stocks[i].anzahlVerfuegbar = temp[i].anzahlVerfuegbar;
     }
-
 }
 
 
@@ -454,16 +448,17 @@ async function tradeStock(_stockName, _count) {
     if (response.ok) {
         return await response.json();
     } else {
-        // TODO [!]: log failure into log window (for user)
-        console.error(response.status + ' :: ' + response.statusText)
-
-        return {};
+        errors.arr.push('TRANSACTION: Invalid amount (' + _count + ') of stocks (' + _stockName + '). Transaction failed.');
     }
 }
 
 //===== PORTFOLIO STOCKS
 let portfolio = {}
 
+/**
+ * Function fetching the players current portfolio-data.
+ * @return Object - player-portfolio
+ * */
 async function getPortfolio() {
     let response = await fetch('/api/depot', {
         method: 'GET',
@@ -472,12 +467,14 @@ async function getPortfolio() {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
     }
 }
 
+/**
+ * Creates the UI for one position Element in the list of the currently open positions of the player
+ * @param _i - Zählvariable, damit eindeutig ist um welche Aktie es sich handelt
+ * @return HTMLElement - returns the ready to use HTML-Element
+ * */
 function createPositionUI (_i) {
     let position = document.createElement('div');
     let name = document.createElement('p');
@@ -533,6 +530,9 @@ function createPositionUI (_i) {
     return position;
 }
 
+/**
+ * Initializes the portfolio UI. Gets current Portfolio data from Server and creates Position-UIs if needed.
+ * */
 async function initPortfolioUI() {
     portfolio = await getPortfolio();
     let positions = document.getElementById('positions');
@@ -549,6 +549,10 @@ async function initPortfolioUI() {
     document.getElementById('portfolio-value').innerText = portfolio.wert;
 }
 
+/**
+ * Updates the portfolio UI. If a position currently does not have any UI, this function creates it.
+ * Furthermore, it updates the Portfolio value UI-Element.
+ * */
 function updatePortfolioUI() {
     document.getElementById('portfolio-value').innerText = Math.floor(portfolio.value);
 
@@ -582,6 +586,9 @@ function updatePortfolio() {
 //=== RANKING =====================================================//
 //=================================================================//
 
+/**
+ * Function for getting the Portfolio values and according player names of everyone.
+ * */
 async function getPortfolioAll() {
     let response = await fetch('/api/depotAlle', {
         method: 'GET',
@@ -590,16 +597,17 @@ async function getPortfolioAll() {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
     }
 }
 
+/**
+ * Function creating the ranking UI. Caution: The prerequisite for guaranteeing functionality
+ * is that the number of players does not change without a server restart.
+ * */
 function createRankingUI(sortedRanking) {
     let ranking = document.getElementById('ranking-list');
 
-    for(let i = 0; i < sortedRanking.length; i++) {
+    for (let i = 0; i < sortedRanking.length; i++) {
         let player = document.createElement('div');
         let name = document.createElement('h4');
         let money = document.createElement('p');
@@ -620,10 +628,9 @@ function createRankingUI(sortedRanking) {
     }
 }
 
-function sortRanking(player1, player2) {
-    return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
-}
-
+/**
+ * An updater for the ranking UI. It updates the positions of the players according their wealth.
+ * */
 function updateRankingUI(sortedRanking) {
     let ranking = document.getElementsByClassName('rank');
 
@@ -639,6 +646,11 @@ function updateRankingUI(sortedRanking) {
 
 let news = {};
 
+/**
+ * Function for getting News from the server. News are about players buying/selling stocks and
+ * the amounts of stocks in those trades.
+ * @param _timeStamp - time in milliseconds (1 gets all news from the server)
+ * */
 async function getNews(_timeStamp) {
     let response = await fetch('/api/nachrichten?letzteZeit=' + _timeStamp, {
         method: 'GET',
@@ -647,12 +659,13 @@ async function getNews(_timeStamp) {
 
     if (response.ok) {
         return await response.json();
-    } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
     }
 }
 
+/**
+ * function for updating the news-Object used to manage the last X (news.maxNews) news.
+ * Older news get removed to not fill the DOM too much.
+ * */
 async function updateNews() {
     // get newest news
     let temp = await getNews(news.latestTimeStamp);
@@ -682,7 +695,10 @@ async function updateNews() {
     }
 }
 
-// TODO: add news UI
+/**
+ * Function creating the UI for each news.
+ * @param _newsData - data used to fill the created UI
+ * */
 function createNewsUI(_newsData) {
     let newsList = document.getElementById('news-list');
     let newsBlock = document.createElement('div');
@@ -702,23 +718,124 @@ function createNewsUI(_newsData) {
     newsList.prepend(newsBlock);
 }
 
+/**
+ * Updates a given UI-Element with new Data
+ * */
 function updateNewsUI(_newsElement, _newsData) {
     _newsElement.firstChild.innerText = correctUhrzeit(_newsData.uhrzeit);
     _newsElement.lastChild.innerText = _newsData.text;
 }
 
-function updateNewsHandler() {
+/**
+ * Mini function. Adds a linebreak between the type of transaction + player-name and amount of stocks + stocks name.
+ * @param _text - message of the news
+ * @return String - adapted message
+ * */
+function adaptNewsMessage(_text) {
+    let temp = _text.split(': ');
+    return temp[0] + ': ' + temp[1] + '\n' + temp[2];
+}
+
+/**
+ * Manager for handling news. If the list of news is shorter than the max, it adds new UI-Elements. If max news UI-Elements count
+ * is reached, the existing Elements get updated instead of deleted and recreated
+ * */
+// Sounded nice on paper, but now I'm not sure if it is really that much more efficient than creating new UI-Elements
+// and then deleting the oldest ones, which are above the limit...
+function newsManager() {
     if(news.updated) {
+        // get the list of news we currently have displayed
+        // IMPORTANT
         let list = document.getElementsByClassName('news');
 
         for( let i = 0; i < news.arr.length; i++) {
+            // editing the news message
+            news.arr[i].text = adaptNewsMessage(news.arr[i].text);
+
+            // if we don't have more news than news-DOM-Elements already exist, we create a new DOM-Element with
+            // the needed information. Otherwise, we just change the content of what we already have.
             if( i >= list.length) {
-                console.log(news.arr[i])
                 createNewsUI(news.arr[i]);
             } else {
                 updateNewsUI(list[list.length - (i+1)], news.arr[i]);
             }
         }
+    }
+}
+
+//=================================================================//
+//=== ERROR =======================================================//
+//=================================================================//
+
+let errors = {}
+
+/**
+ * Function for creating an error UI-Element and filling it with the given message.
+ * @param _errorData - String containing the error-data
+ * */
+function createErrorUI(_errorData) {
+    let errorLog = document.getElementById('error-log');
+    let errorBlock = document.createElement('div');
+    let errorMessage = document.createElement('p');
+
+    errorMessage.classList.add('error-message');
+    errorMessage.innerText = _errorData;
+
+    errorBlock.classList.add('errors');
+    errorBlock.classList.add('red-error')
+    errorBlock.appendChild(errorMessage);
+
+    errorLog.prepend(errorBlock);
+
+
+    setTimeout(() => {
+        errorBlock.classList.remove('red-error');
+    }, 500);
+}
+
+/**
+ * Updates the given UI-Element with the given error-data
+ * @param _errorElement - DOMElement to get new text
+ * @param _errorData - String containing the error-data
+ * */
+function updateErrorUI(_errorElement, _errorData) {
+    _errorElement.firstChild.innerText = _errorData;
+}
+
+/**
+ * Manager for handling errors. If the list of errors is shorter than the max, it adds new UI-Elements. If max error UI-Elements count
+ * is reached, the existing Elements get updated instead of deleted and recreated
+ * */
+// Same issue as above... sounded nice on paper, but now I'm not sure if it is really that much more efficient than creating new UI-Elements
+// and then deleting the oldest ones, which are above the limit...
+function errorManager() {
+    if(errors.arr.length > errors.maxErrors || errors.arr.length > errors.lastLength) {
+        // if more than max allowed errors, remove the oldest errors
+        while (errors.arr.length > errors.maxErrors) {
+            errors.arr.shift();
+        }
+
+        // get the list of errors we currently have displayed
+        let list = document.getElementsByClassName('errors');
+
+        for( let i = 0; i < errors.arr.length; i++) {
+            // if we don't have more errors than error-DOM-Elements already exist, we create a new DOM-Element with
+            // the needed information. Otherwise, we just change the content of what we already have.
+            if( i >= list.length) {
+                createErrorUI(errors.arr[i]);
+            } else {
+                if(i === errors.arr.length - 1) {
+                    // the effect is unfortunately not the same, compared to creating a new Element
+                    // beacause now it not only fades out but fades in and then out...
+                    list[list.length - (i+1)].classList.add('red-error');
+                    setTimeout(() => {
+                        list[list.length - (i+1)].classList.remove('red-error');
+                    }, 600);
+                }
+                updateErrorUI(list[list.length - (i+1)], errors.arr[i]);
+            }
+        }
+        errors.lastLength = errors.arr.length;
     }
 }
 
@@ -744,7 +861,6 @@ window.onload = async () => {
     createStocksUI();
 
     // PORTFOLIO
-    portfolio = await getPortfolio();
     await initPortfolioUI();
 
     // RANKING
@@ -759,21 +875,37 @@ window.onload = async () => {
     news.latestTimeStamp = 1;
     news.maxNews = 20;
     news.updated = false;
-    console.log(news);
+
+    // ERROR-LOG
+    errors.arr = [];
+    errors.lastLength = errors.arr.length;
+    errors.maxErrors = 10;
 
     let updater = setInterval(async () => {
-        await updateBalance(user);
-        await updateStocks();
-        updateStocksUI();
-        highlightStocks();
-        updatePortfolio();
-        updatePortfolioUI();
-        let ranking = await getPortfolioAll();
-        ranking.sort((player1, player2) => {
-            return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
-        });
-        updateRankingUI(ranking);
-        await updateNews();
-        updateNewsHandler();
+        try {
+            await updateBalance(user);
+
+            await updateStocks();
+            updateStocksUI();
+            highlightStocks();
+
+            updatePortfolio();
+            updatePortfolioUI();
+
+            let ranking = await getPortfolioAll();
+            ranking.sort((player1, player2) => {
+                return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
+            });
+            updateRankingUI(ranking);
+
+            await updateNews();
+            newsManager();
+        } catch (error) {
+            if(errors.arr[errors.arr.length-1] !== 'SERVER ERROR: Connection could not be established') {
+                errors.arr.push('SERVER ERROR: Connection could not be established');
+            }
+        }
+
+        errorManager();
     }, 500);
 }

@@ -325,27 +325,38 @@ header > h1 {
 }
 
 /*=================================================================//
-//=== NEWS ========================================================//
+//=== NEWS/ERROR-LOG ==============================================//
 //=================================================================*/
-#news {
+#news-section {
     grid-column: 3 / -1;
     grid-row: 3 / 4;
 
+    border-bottom-left-radius: 10px;
+    border-top-left-radius: 10px;
+}
+
+#errors-section {
+    grid-column: 3 / -1;
+    grid-row: 4 / 5;
+
+    border-top-left-radius: 10px;
+}
+
+#news-section, #errors-section {
     display: grid;
     grid-template-columns: 1fr;
     grid-template-rows: min-content 1fr;
     gap: 5px;
     grid-auto-flow: row;
 
-    border-bottom-left-radius: 10px;
-    border-top-left-radius: 10px;
+
     background-color: lightgrey;
     padding: 20px;
 
     overflow-x: hidden;
 }
 
-#news-list {
+#news-list, #error-log {
     grid-column: 1 / 2;
     grid-row: 2 / 3;
 
@@ -359,15 +370,25 @@ header > h1 {
     overflow-x: hidden;
 }
 
+.news, .errors {
+    padding: 5px;
+    border-radius: 5px;
+    background-color: grey;
+}
+
+.errors {
+    transition: background-color .4s ease-in;
+}
+
+.errors.red-error {
+    background-color: red;
+}
+
 .news {
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: min-content min-content;
+    grid-auto-rows: min-content;
     gap: 5px;
-    padding: 5px;
-    border-radius: 5px;
-
-    background-color: grey;
 }
 
 .news-time {
@@ -378,16 +399,6 @@ header > h1 {
 .news-message {
     grid-column: 1 / 2;
     grid-row: 2 / 3;
-}
-
-/*=================================================================//
-//=== ERROR-LOG ===================================================//
-//=================================================================*/
-.error-log {
-    grid-column: 3 / -1;
-    grid-row: 4 / -1;
-
-    background-color: goldenrod;
 }
 
 /*=================================================================//

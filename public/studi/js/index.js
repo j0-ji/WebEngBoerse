@@ -5,9 +5,7 @@
 //=================================================================//
 
 function isEmpty(_obj) {
-    try{
-        return Object.keys(_obj).length === 0 /* && _obj.constructor === Object */ ;
-    } catch (ignored) {}
+     return Object.keys(_obj).length === 0 /* && _obj.constructor === Object */ ;
 }
 
 function correctUhrzeit(_uhrzeit) {
@@ -429,7 +427,6 @@ function average(_arr) {
  * @param _count - number of stocks [positive number - buy amount | negative number - sell amount]
  * @returns response
  * */
-// TODO [!]: work with response to make portfolio more efficient
 async function tradeStock(_stockName, _count) {
     let response = await fetch('/api/umsaetze', {
         method: 'POST',
@@ -449,6 +446,7 @@ async function tradeStock(_stockName, _count) {
         return await response.json();
     } else {
         errors.arr.push('TRANSACTION: Invalid amount (' + _count + ') of stocks (' + _stockName + '). Transaction failed.');
+        return {}
     }
 }
 

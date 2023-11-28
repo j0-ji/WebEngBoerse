@@ -333,7 +333,7 @@ header > h1 {
 
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(auto-fill, min-content);
+    grid-template-rows: min-content 1fr;
     gap: 5px;
     grid-auto-flow: row;
 
@@ -342,7 +342,6 @@ header > h1 {
     background-color: lightgrey;
     padding: 20px;
 
-    overflow-y: auto;
     overflow-x: hidden;
 }
 
@@ -352,7 +351,7 @@ header > h1 {
 
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: repeat(auto-fill, min-content);
+    grid-auto-rows: min-content;
     gap: 5px;
     grid-auto-flow: row;
 

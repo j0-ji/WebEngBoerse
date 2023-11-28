@@ -11,7 +11,7 @@ function isEmpty(_obj) {
 function correctUhrzeit(_uhrzeit) {
     let temp = _uhrzeit.split(':');
     let temp2;
-    if (parseInt(temp[0]) > 9 && parseInt(temp[1]) === 0) {
+    if (parseInt(temp[1]) === 0) {
         temp2 = temp[0] + ':00'
     } else {
         temp2 = _uhrzeit;
@@ -134,6 +134,7 @@ function updateName (_user) {
  * */
 async function updateBalance (_user) {
     let data = await getUserData();
+
     _user.balance = data.kontostand;
 
     let balanceTag = document.getElementById('balance');
@@ -149,7 +150,6 @@ async function updateBalance (_user) {
 
 /**
  * Function fetching the current user-data.
- * TODO [!]: implement error logging.
  * DO NOT OVERWRITE USER-OBJ. WITH THE OUTPUT OF THIS FUNCTION!
  * THE USER-OBJ. HAS MORE DATA STORED THAN HERE IS RETURNED.
  * ONLY COPY NEEDED DATA.
@@ -163,8 +163,11 @@ async function getUserData() {
     if (response.ok) {
         return await response.json();
     } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
+        console.error(response.status + ' :: ' + response.statusText);
+        errors.arr.push({
+            code:response.status,
+            message:'SERVER ERROR: The server could not be reached.',
+        });
     }
 }
 
@@ -192,7 +195,6 @@ let stocks = {};
 
 /**
  * Function fetching the current stocks-data.
- * TODO [!]: implement error logging.
  * DO NOT OVERWRITE STOCKS-OBJ. WITH THE OUTPUT OF THIS FUNCTION!
  * THE STOCKS-OBJ. HAS MORE DATA STORED THAN HERE IS RETURNED.
  * ONLY COPY NEEDED DATA.
@@ -206,8 +208,11 @@ async function getStocks() {
     if (response.ok) {
         return await response.json();
     } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
+        console.error(response.status + ' :: ' + response.statusText);
+        errors.arr.push({
+            code:response.status,
+            message:'SERVER ERROR: The server could not be reached.',
+        });
     }
 }
 
@@ -240,7 +245,6 @@ async function updateStocks() {
         }
         stocks[i].anzahlVerfuegbar = temp[i].anzahlVerfuegbar;
     }
-
 }
 
 
@@ -454,9 +458,11 @@ async function tradeStock(_stockName, _count) {
     if (response.ok) {
         return await response.json();
     } else {
-        // TODO [!]: log failure into log window (for user)
-        console.error(response.status + ' :: ' + response.statusText)
-
+        console.error(response.status + ' :: ' + response.statusText);
+        errors.arr.push({
+            code:response.status,
+            message:'TRANSACTION: Invalid amount (' + _count + ') of stocks (' + _stockName + '). Transaction failed.',
+        });
         return {};
     }
 }
@@ -473,8 +479,11 @@ async function getPortfolio() {
     if (response.ok) {
         return await response.json();
     } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
+        console.error(response.status + ' :: ' + response.statusText);
+        errors.arr.push({
+            code:response.status,
+            message:'SERVER ERROR: The server could not be reached.',
+        });
     }
 }
 
@@ -591,15 +600,18 @@ async function getPortfolioAll() {
     if (response.ok) {
         return await response.json();
     } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
+        console.error(response.status + ' :: ' + response.statusText);
+        errors.arr.push({
+            code:response.status,
+            message:'SERVER ERROR: The server could not be reached.',
+        });
     }
 }
 
 function createRankingUI(sortedRanking) {
     let ranking = document.getElementById('ranking-list');
 
-    for(let i = 0; i < sortedRanking.length; i++) {
+    for (let i = 0; i < sortedRanking.length; i++) {
         let player = document.createElement('div');
         let name = document.createElement('h4');
         let money = document.createElement('p');
@@ -618,10 +630,6 @@ function createRankingUI(sortedRanking) {
 
         ranking.appendChild(player);
     }
-}
-
-function sortRanking(player1, player2) {
-    return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
 }
 
 function updateRankingUI(sortedRanking) {
@@ -648,8 +656,11 @@ async function getNews(_timeStamp) {
     if (response.ok) {
         return await response.json();
     } else {
-        // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
+        console.error(response.status + ' :: ' + response.statusText);
+        errors.arr.push({
+            code:response.status,
+            message:'SERVER ERROR: The server could not be reached.',
+        });
     }
 }
 
@@ -682,7 +693,6 @@ async function updateNews() {
     }
 }
 
-// TODO: add news UI
 function createNewsUI(_newsData) {
     let newsList = document.getElementById('news-list');
     let newsBlock = document.createElement('div');
@@ -707,16 +717,91 @@ function updateNewsUI(_newsElement, _newsData) {
     _newsElement.lastChild.innerText = _newsData.text;
 }
 
+/**
+ * Mini function. Adds a linebreak between the type of transaction + player-name and amount of stocks + stocks name.
+ * @param _text - message of the news
+ * @return String - adapted message
+ * */
+function adaptNewsMessage(_text) {
+    let temp = _text.split(': ');
+    return temp[0] + ': ' + temp[1] + '\n' + temp[2];
+}
+
 function updateNewsHandler() {
     if(news.updated) {
+        // get the list of news we currently have displayed
+        // IMPORTANT
         let list = document.getElementsByClassName('news');
 
         for( let i = 0; i < news.arr.length; i++) {
+            // editing the news message
+            news.arr[i].text = adaptNewsMessage(news.arr[i].text);
+
+            // if we don't have more news than news-DOM-Elements already exist, we create a new DOM-Element with
+            // the needed information. Otherwise, we just change the content of what we already have.
             if( i >= list.length) {
-                console.log(news.arr[i])
                 createNewsUI(news.arr[i]);
             } else {
                 updateNewsUI(list[list.length - (i+1)], news.arr[i]);
+            }
+        }
+    }
+}
+
+//=================================================================//
+//=== ERROR =======================================================//
+//=================================================================//
+
+let errors = {}
+
+function updateErrors () {
+    if(errors.arr.length !== errors.lastLength) {
+        while(errors.arr.length > errors.maxErrors) {
+            errors.arr.shift();
+        }
+        errors.lastLength = errors.arr.length;
+        errors.updated = true;
+    } else {
+        errors.updated = false;
+    }
+}
+
+function createErrorUI(_errorData) {
+    let errorLog = document.getElementById('error-log');
+    let errorBlock = document.createElement('div');
+    let errorCode = document.createElement('h4');
+    let errorMessage = document.createElement('p');
+
+    errorCode.classList.add('error-code');
+    errorCode.innerText = _errorData.code;
+
+    errorMessage.classList.add('error-message');
+    errorMessage.innerText = _errorData.message;
+
+    errorBlock.classList.add('news');
+    errorBlock.appendChild(errorCode);
+    errorBlock.appendChild(errorMessage);
+
+    errorLog.prepend(errorBlock);
+}
+
+function updateErrorUI(_errorElement, _errorData) {
+    _errorElement.firstChild.innerText = correctUhrzeit(_errorData.code);
+    _errorElement.lastChild.innerText = _errorData.message;
+}
+
+function updateErrorHandler() {
+    if(errors.updated) {
+        // get the list of errors we currently have displayed
+        let list = document.getElementsByClassName('errors');
+
+        for( let i = 0; i < errors.arr.length; i++) {
+            // if we don't have more errors than error-DOM-Elements already exist, we create a new DOM-Element with
+            // the needed information. Otherwise, we just change the content of what we already have.
+            if( i >= list.length) {
+                createErrorUI(errors.arr[i]);
+            } else {
+                updateErrorUI(list[list.length - (i+1)], errors.arr[i]);
             }
         }
     }
@@ -761,18 +846,34 @@ window.onload = async () => {
     news.updated = false;
     console.log(news);
 
+    // ERROR-LOG
+    errors.arr = [];
+    errors.lastLength = errors.arr.length;
+    errors.updated = false;
+    errors.maxErrors = 10;
+
+    let errorUpdater = setInterval(() => {
+        updateErrors();
+        updateErrorHandler();
+    }, 500);
+
     let updater = setInterval(async () => {
+
         await updateBalance(user);
+
         await updateStocks();
         updateStocksUI();
         highlightStocks();
+
         updatePortfolio();
         updatePortfolioUI();
+
         let ranking = await getPortfolioAll();
         ranking.sort((player1, player2) => {
             return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
         });
         updateRankingUI(ranking);
+
         await updateNews();
         updateNewsHandler();
     }, 500);

@@ -25,18 +25,29 @@ p {
     font-size: var(--paragraph);
 }
 
-/* BODY */
+/*=================================================================//
+//=== BODY ========================================================//
+//=================================================================*/
 body {
     display: grid;
-    grid-template-columns: 2fr 6fr 2fr;
+    grid-template-columns: minmax(380px, 2fr) 6fr minmax(380px, 2fr);
     grid-template-rows: 100px 3fr 5fr 3fr;
     gap: 10px;
+
+    /*
+        Subjektives empfinden: Bei einem Spiel ist es unnötig bzw. eine Ablenkung, wenn der Cursor sich über text ändert.
+        Die einzigen Fälle, bei denen sich der Cursor ändern soll sind Buttons.
+    */
+    cursor: default;
 
     height: 100vh;
     width: 100vw;
 }
 
-/* HEADER */
+/*=================================================================//
+//=== HEADER ======================================================//
+//=================================================================*/
+
 header {
     grid-column: 1 / 3;
     grid-row: 1 / 2 ;
@@ -45,7 +56,7 @@ header {
     flex-direction: row;
     gap: 20px;
     overflow: hidden;
-    border-bottom-right-radius: 5px;
+    border-bottom-right-radius: 10px;
 
     background-color: lightgrey;
 }
@@ -61,32 +72,103 @@ header > h1 {
     margin: auto 0 auto 0;
 }
 
-/* PORTFOLIO */
+/*=================================================================//
+//=== PORTFOLIO ===================================================//
+//=================================================================*/
 #portfolio {
     grid-column: 1 / 2;
     grid-row: 2 / -1;
 
-    background-color: goldenrod;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: 60px 60px 1fr;
+
+    padding: 20px;
+    border-top-right-radius: 10px;
+    background-color: lightgrey;
 }
 
+#portfolio > h3 {
+    margin: auto 0 auto 0;
+}
 
+#portfolio-value {
 
-/* STOCKS */
+}
+
+#positions {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-auto-rows: min-content;
+    gap: 10px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.position {
+    background-color: #00B7FF;
+
+    display: grid;
+    grid-template-columns: 100px 1fr 60px;
+    grid-template-rows: 30px 30px;
+    gap: 5px;
+
+    height: 65px;
+    padding: 5px;
+    border-radius: 5px;
+    cursor: default;
+}
+
+.position-name {
+    grid-column: 1 / 3;
+    grid-row: 1 / 2;
+}
+
+.emergency-sell {
+    grid-column: 3 / 4;
+    grid-row: 1 / 2;
+
+    background-color: red;
+    border-radius: 3px;
+    cursor: pointer;
+
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.position-count {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+}
+
+.position-value {
+    grid-column: 2 / 4;
+    grid-row: 2 / 3;
+}
+
+/*=================================================================//
+//=== STOCKS ======================================================//
+//=================================================================*/
+
 #stocks {
     grid-column: 2 / 3;
     grid-row: 2 / -1;
 
     display: grid;
-    grid-template-columns: repeat(auto-fit, 310px);
+    grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
     grid-auto-rows: max-content;
+    gap: 20px;
 
     background-color: lightgrey;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    padding: 6px;
-    gap: 10px;
-}
+    border-top-left-radius: 10px;
+    border-top-right-radius: 10px;
+    padding: 20px;
 
+    overflow-y: auto;
+    overflow-x: hidden;
+}
 .stock {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -96,6 +178,7 @@ header > h1 {
     width: 290px;
     height: inherit;
     padding: 10px;
+    margin: auto;
 
     background-color: grey;
     border-radius: 5px;
@@ -109,17 +192,13 @@ header > h1 {
     background-color: red;
 }
 
-.stock:hover .buy-sell {
-    display: grid;
-}
-
 .buy-sell {
     grid-column: 1 / 3;
     grid-row: 4 / 5;
 
-    display: none;
+    display: grid;
     grid-auto-flow: row;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
     gap: 10px;
 
     height: 30px;
@@ -131,16 +210,24 @@ header > h1 {
     align-items: center;
     border-radius: 5px;
     cursor: pointer;
-}
-
-.sell100 {
-    background-color: darkred;
     color: white;
 }
 
-.buy100 {
-    background-color: darkgreen;
-    color: white;
+.sell10k {
+    background-color: #7b0000;
+}
+
+.sell1k {
+    background-color: #640000;
+}
+
+.buy10k {
+    background-color: #007000;
+
+}
+
+.buy1k {
+    background-color: #006400;
 }
 
 .stock-chart {
@@ -181,23 +268,122 @@ header > h1 {
     margin: auto;
 }
 
-/* RANKING */
-.ranking {
+/*=================================================================//
+//=== RANKING =====================================================//
+//=================================================================*/
+
+#ranking {
     grid-column: 3 / -1;
     grid-row: 1 / 3;
 
-    background-color: goldenrod;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: max-content 1fr;
+    gap: 10px;
+
+    border-bottom-left-radius: 10px;
+    background-color: lightgrey;
+    padding: 20px;
 }
 
-/* NEWS */
-.news {
+#ranking-list {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(auto-fill, min-content);
+    gap: 5px;
+    grid-auto-flow: row;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.rank {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 5px;
+}
+
+.firstRank {
+    background-color: gold;
+}
+
+.secondRank {
+    background-color: silver;
+}
+
+.thirdRank {
+    background-color: #c77b30;
+}
+
+.otherRank {
+    background-color: grey;
+}
+
+/*=================================================================//
+//=== NEWS ========================================================//
+//=================================================================*/
+#news {
     grid-column: 3 / -1;
     grid-row: 3 / 4;
 
-    background-color: goldenrod;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(auto-fill, min-content);
+    gap: 5px;
+    grid-auto-flow: row;
+
+    border-bottom-left-radius: 10px;
+    border-top-left-radius: 10px;
+    background-color: lightgrey;
+    padding: 20px;
+
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
-/* ERROR-LOG */
+#news-list {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(auto-fill, min-content);
+    gap: 5px;
+    grid-auto-flow: row;
+
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.news {
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: min-content min-content;
+    gap: 5px;
+    padding: 5px;
+    border-radius: 5px;
+
+    background-color: grey;
+}
+
+.news-time {
+    grid-column: 1 / 2;
+    grid-row: 1 / 2;
+}
+
+.news-message {
+    grid-column: 1 / 2;
+    grid-row: 2 / 3;
+}
+
+/*=================================================================//
+//=== ERROR-LOG ===================================================//
+//=================================================================*/
 .error-log {
     grid-column: 3 / -1;
     grid-row: 4 / -1;
@@ -205,7 +391,9 @@ header > h1 {
     background-color: goldenrod;
 }
 
-/* VARIABLES */
+/*=================================================================//
+//=== VARIABLES ===================================================//
+//=================================================================*/
 .main-design {
     --heading-1: 46px;
     --heading-2: 38px;

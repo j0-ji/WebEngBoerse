@@ -1,17 +1,137 @@
 'use strict';
 
 //=================================================================//
-//=== HEADER ======================================================//
+//=== UTIL ========================================================//
 //=================================================================//
 
+function isEmpty(_obj) {
+    return Object.keys(_obj).length === 0 /* && _obj.constructor === Object */ ;
+}
+
+function correctUhrzeit(_uhrzeit) {
+    let temp = _uhrzeit.split(':');
+    let temp2;
+    if (parseInt(temp[0]) > 9 && parseInt(temp[1]) === 0) {
+        temp2 = temp[0] + ':00'
+    } else {
+        temp2 = _uhrzeit;
+    }
+    return temp2
+}
+
+/* VERY DUMB TRY TO mAKE AN ARRAYLIST IN JS :|
+
+class ArrayList {
+    #array;
+    length;
+
+    constructor(_arr) {
+        if(isEmpty(_arr)) {
+            this.#array = [];
+            console.log('this.#array = ' + JSON.stringify(this.#array));
+            console.log(this.#array)
+        } else {
+            this.#array = _arr;
+        }
+        this.length = this.#array.length;
+    }
+
+    getItem(i) {
+        return this.#array[i];
+    }
+
+    removeFirstItem() {
+        let temp = this.#array;
+        for(let i = 1; i < temp.length; i++) {
+            this.#array[i-1] = temp[i];
+        }
+        this.length = this.#array.length
+    }
+
+    removeLastItem() {
+        let temp = this.#array;
+
+        for(let i = 0; i < temp.length - 1; i++) {
+            this.#array[i] = temp[i];
+        }
+        this.length = this.#array.length;
+    }
+
+    removeFirstItems(count) {
+        let temp = this.#array;
+        for( let i = count; i < temp.length; i++) {
+            this.#array[i-count] = temp[i];
+        }
+        this.length = this.#array.length;
+    }
+
+    removeLastItems(count) {
+        let temp = this.#array;
+        for(let i = 0; i < temp.length - count; i++) {
+            this.#array[i] = temp[i];
+        }
+        this.length = this.#array.length;
+    }
+
+    appendItem(_item) {
+        this.#array[this.#array.length] = _item;
+        this.length = this.#array.length;
+    }
+
+    appendItems(_items) {
+        for(let item in _items) {
+            this.appendItem(item);
+        }
+    }
+
+    prependItem(_item) {
+        let temp = this.#array;
+        this.#array[0] = _item;
+        for (let i = 1; i <= temp.length; i++) {
+            this.#array[i] = temp[i-1];
+        }
+        this.length = this.#array.length;
+    }
+
+    prependItems(_items) {
+        let temp = this.#array;
+        this.#array = [];
+        for(let i = 0; i < _items.length; i++) {
+            this.#array[i] = _items[i];
+        }
+        for(let i = _items.length; i < _items.length + temp.length; i++) {
+            this.#array[i] = temp[i-_items.length];
+        }
+        this.length = this.#array.length;
+    }
+}
+
+*/
+
+//=================================================================//
+//=== HEADER ======================================================//
+//=================================================================//
+/**
+ * Class for managing user information like name and current balance
+ * */
 const user = {};
 
-/* FUNCTIONS */
+/**
+ * Function for updating the users name the moment the page is loaded.
+ * @param _user - user-object
+ * @see user
+ * */
 function updateName (_user) {
     let nameTag = document.getElementById('player-name');
     nameTag.innerText = _user.name;
 }
 
+/**
+ * Function for getting the current balance of the user and updating the user-object.
+ * Should be called inside a setIntervall to assure continuous updates.
+ * @param _user - user-object
+ * @see user
+ * */
 async function updateBalance (_user) {
     let data = await getUserData();
     _user.balance = data.kontostand;
@@ -27,9 +147,15 @@ async function updateBalance (_user) {
     }
 }
 
+/**
+ * Function fetching the current user-data.
+ * TODO [!]: implement error logging.
+ * DO NOT OVERWRITE USER-OBJ. WITH THE OUTPUT OF THIS FUNCTION!
+ * THE USER-OBJ. HAS MORE DATA STORED THAN HERE IS RETURNED.
+ * ONLY COPY NEEDED DATA.
+ * */
 async function getUserData() {
     let response = await fetch('/api/benutzerdaten', {
-        // TODO [!]: check if method and headers are correct
         method: 'GET',
         headers: {'accept': 'application/json'}
     });
@@ -42,17 +168,35 @@ async function getUserData() {
     }
 }
 
+/**
+ * Function to be attached to the user class. Calculates the trade-earning for the current session.
+ * Reloading the page or restarting the browser will reset the session and the percentage to 0.
+ * */
 function getPercent() {
-    return (this.balance / this.initBalance * 100) - 100;
+    return Number(((this.balance / this.initBalance * 100) - 100).toFixed(2));
 }
 
 //=================================================================//
 //=== STOCKS ======================================================//
 //=================================================================//
 
+/**
+ * Constant storing the link to the svg-namespace.
+ * */
 const svgns = "http://www.w3.org/2000/svg";
+
+/**
+ * Stocks object used for managing the display-functionality of all the stock-graphs and information.
+ * */
 let stocks = {};
 
+/**
+ * Function fetching the current stocks-data.
+ * TODO [!]: implement error logging.
+ * DO NOT OVERWRITE STOCKS-OBJ. WITH THE OUTPUT OF THIS FUNCTION!
+ * THE STOCKS-OBJ. HAS MORE DATA STORED THAN HERE IS RETURNED.
+ * ONLY COPY NEEDED DATA.
+ * */
 async function getStocks() {
     let response = await fetch('/api/aktien', {
         method: 'GET',
@@ -67,6 +211,10 @@ async function getStocks() {
     }
 }
 
+/**
+ * Function adding a history-array to all the stocks available in stocks-obj.
+ * @see stocks
+ * */
 function addHistoryArray() {
     if(stocks.length > 0) {
         for( let i = 0; i < stocks.length; i++) {
@@ -75,6 +223,11 @@ function addHistoryArray() {
     }
 }
 
+/**
+ * Function which gets the current stock-data and updates the stocks-obj.
+ * @see stocks
+ * @see getStocks
+ * */
 async function updateStocks() {
     let temp = await getStocks();
 
@@ -90,6 +243,14 @@ async function updateStocks() {
 
 }
 
+
+/**
+ * Function to create the UI for one stock. Uses the global class stocks to get needed information.
+ * @see stocks
+ * @see svgns
+ * @see tradeStock
+ *
+ * */
 function createStocksUI() {
     let stocksUI = document.getElementById('stocks');
 
@@ -102,26 +263,64 @@ function createStocksUI() {
         let stockCount = document.createElement('p');
 
         let buySell = document.createElement('div');
-        let buy100 = document.createElement('p');
-        let sell100 = document.createElement('p');
+        let buy1k = document.createElement('p');
+        let buy10k = document.createElement('p');
+        let sell1k = document.createElement('p');
+        let sell10k = document.createElement('p');
 
-        sell100.classList.add('button');
-        sell100.classList.add('sell100');
-        sell100.innerText = '-100';
-        sell100.addEventListener('click', async () => {
-            await tradeStock(stocks[i].name, -100)
+        sell1k.classList.add('button');
+        sell1k.classList.add('sell1k');
+        sell1k.innerText = '-1k';
+        sell1k.addEventListener('click', async () => {
+            let count = -1000;
+            let response = await tradeStock(stocks[i].name, count);
+
+            if(!isEmpty(response)) {
+                portfolio.positionen[i].anzahl += count;
+            }
         });
 
-        buy100.classList.add('button');
-        buy100.classList.add('buy100');
-        buy100.innerText = '+100';
-        buy100.addEventListener('click', async () => {
-            await tradeStock(stocks[i].name, 100)
+        sell10k.classList.add('button');
+        sell10k.classList.add('sell10k');
+        sell10k.innerText = '-10k';
+        sell10k.addEventListener('click', async () => {
+            let count = -10000;
+            let response = await tradeStock(stocks[i].name, count);
+
+            if(!isEmpty(response)) {
+                portfolio.positionen[i].anzahl += count;
+            }
+        });
+
+        buy1k.classList.add('button');
+        buy1k.classList.add('buy1k');
+        buy1k.innerText = '+1k';
+        buy1k.addEventListener('click', async () => {
+            let count = 1000;
+            let response = await tradeStock(stocks[i].name, count);
+
+            if(!isEmpty(response)) {
+                portfolio.positionen[i].anzahl += count;
+            }
+        });
+
+        buy10k.classList.add('button');
+        buy10k.classList.add('buy10k');
+        buy10k.innerText = '+10k';
+        buy10k.addEventListener('click', async () => {
+            let count = 10000;
+            let response = await tradeStock(stocks[i].name, count);
+
+            if(!isEmpty(response)) {
+                portfolio.positionen[i].anzahl += count;
+            }
         });
 
         buySell.classList.add('buy-sell');
-        buySell.appendChild(sell100);
-        buySell.appendChild(buy100);
+        buySell.appendChild(sell10k);
+        buySell.appendChild(sell1k);
+        buySell.appendChild(buy1k);
+        buySell.appendChild(buy10k);
 
         polyline.classList.add('polyline-graph');
 
@@ -152,6 +351,10 @@ function createStocksUI() {
     }
 }
 
+/**
+ * Function for updating the stock UIs. It updates the graph, the current price and the available stock-count.
+ * @see stocks
+ * */
 function updateStocksUI() {
     let stockCharts = document.getElementsByClassName('stock-chart');
     let stockPrices = document.getElementsByClassName('stock-price');
@@ -171,12 +374,18 @@ function updateStocksUI() {
 
         polyline.setAttribute('points', points);
 
-        //updateChart(stockCharts[i], i);
         stockPrices[i].innerText = stocks[i].preis;
         stockCounts[i].innerText = stocks[i].anzahlVerfuegbar;
     }
 }
 
+/**
+ * FOR BETTER UX (USER-EXPERIENCE)
+ * Changes the stock-box' background color depending on the mean of the last 9 (plus current) price-values.
+ * If the current price is less than the mean, background is set red. If it's more than the mean background is green.
+ * Last but not least, background is grey again if the current price is equal to the mean.
+ * @see stocks
+ * */
 function highlightStocks() {
     let stockUIs = document.getElementsByClassName('stock');
 
@@ -200,14 +409,19 @@ function highlightStocks() {
     }
 }
 
-function average(arr) {
+/**
+ * Simple function calculating the mean of a given array of integer type.
+ * @param _arr - int array
+ * @return int - the mean of the int-array
+ * */
+function average(_arr) {
     let num = 0;
 
-    arr.forEach(n => {
+    _arr.forEach(n => {
         num += n;
     });
 
-    return num/arr.length;
+    return num/_arr.length;
 }
 
 //=================================================================//
@@ -215,6 +429,13 @@ function average(arr) {
 //=================================================================//
 
 //===== BUY/SELL
+/**
+ * Function for buying/selling stocks.
+ * @param _stockName - name of the stock
+ * @param _count - number of stocks [positive number - buy amount | negative number - sell amount]
+ * @returns response
+ * */
+// TODO [!]: work with response to make portfolio more efficient
 async function tradeStock(_stockName, _count) {
     let response = await fetch('/api/umsaetze', {
         method: 'POST',
@@ -234,11 +455,272 @@ async function tradeStock(_stockName, _count) {
         return await response.json();
     } else {
         // TODO [!]: log failure into log window (for user)
-        console.log(response.status + ' :: ' + response.statusText)
+        console.error(response.status + ' :: ' + response.statusText)
+
+        return {};
     }
 }
 
 //===== PORTFOLIO STOCKS
+let portfolio = {}
+
+async function getPortfolio() {
+    let response = await fetch('/api/depot', {
+        method: 'GET',
+        headers: {'accept': 'application/json'}
+    });
+
+    if (response.ok) {
+        return await response.json();
+    } else {
+        // TODO [!]: log failure into log window (for user)
+        console.log(response.status + ' :: ' + response.statusText)
+    }
+}
+
+function createPositionUI (_i) {
+    let position = document.createElement('div');
+    let name = document.createElement('p');
+    let sellAll = document.createElement('p');
+    let count = document.createElement('p');
+    let value = document.createElement('p');
+
+    name.classList.add('position-name');
+    name.innerText = portfolio.positionen[_i].aktie.name;
+
+    sellAll.classList.add('emergency-sell');
+    sellAll.innerText = 'SELL'
+    sellAll.title = 'Click if you want to CLOSE WHOLE POSITION';
+    sellAll.addEventListener('click', async () => {
+        let count = 0 - portfolio.positionen[_i].anzahl;
+        let response = await tradeStock(stocks[_i].name, count);
+
+        if(!isEmpty(response)) {
+            portfolio.positionen[_i].anzahl += count;
+        }
+
+        position.remove();
+        clearInterval(updatePositionCount);
+        clearInterval(updatePositionValue);
+        portfolio.positionen[_i].hasUI = false;
+    });
+
+    count.classList.add('position-count');
+    let updatePositionCount = setInterval(() => {
+        if( portfolio.positionen[_i].anzahl === 0 ) {
+            position.remove();
+            clearInterval(updatePositionValue);
+            clearInterval(updatePositionCount);
+            portfolio.positionen[_i].hasUI = false;
+        } else {
+            count.innerText = portfolio.positionen[_i].anzahl;
+        }
+    }, 500);
+
+    value.classList.add('position-value');
+    let updatePositionValue = setInterval(() => {
+        value.innerText = Math.floor(portfolio.positionen[_i].anzahl * stocks[_i].preis);
+    }, 500);
+
+
+    position.classList.add('position');
+    position.title = 'An open position. Can be modified by buying or selling stocks.';
+    position.appendChild(name);
+    position.appendChild(sellAll);
+    position.appendChild(count);
+    position.appendChild(value);
+
+    return position;
+}
+
+async function initPortfolioUI() {
+    portfolio = await getPortfolio();
+    let positions = document.getElementById('positions');
+
+    for(let i = 0; i < portfolio.positionen.length; i++) {
+        if(portfolio.positionen[i].anzahl > 0) {
+            positions.appendChild(createPositionUI(i));
+            portfolio.positionen[i].hasUI = true;
+        } else {
+            portfolio.positionen[i].hasUI = false;
+        }
+    }
+
+    document.getElementById('portfolio-value').innerText = portfolio.wert;
+}
+
+function updatePortfolioUI() {
+    document.getElementById('portfolio-value').innerText = Math.floor(portfolio.value);
+
+    let positions = document.getElementById('positions');
+
+    for(let i = 0; i < portfolio.positionen.length; i++) {
+        if(portfolio.positionen[i].anzahl > 0 && portfolio.positionen[i].hasUI !== true) {
+            positions.appendChild(createPositionUI(i));
+            portfolio.positionen[i].hasUI = true;
+        }
+    }
+}
+
+/**
+ * Should be executed after updating the stocks-obj. because the update of the portfolio
+ * is done with client-side calculation to reduce get/post-requests to the server.
+ * Currently, updates only portfolio value, the count of stocks in each position is manipulated by
+ * buying or selling stocks.
+ * */
+function updatePortfolio() {
+    portfolio.value = 0;
+
+    for(let i = 0; i < portfolio.positionen.length; i++) {
+        if(portfolio.positionen[i].anzahl > 0) {
+            portfolio.value += portfolio.positionen[i].anzahl * stocks[i].preis;
+        }
+    }
+}
+
+//=================================================================//
+//=== RANKING =====================================================//
+//=================================================================//
+
+async function getPortfolioAll() {
+    let response = await fetch('/api/depotAlle', {
+        method: 'GET',
+        headers: {'accept': 'application/json'}
+    });
+
+    if (response.ok) {
+        return await response.json();
+    } else {
+        // TODO [!]: log failure into log window (for user)
+        console.log(response.status + ' :: ' + response.statusText)
+    }
+}
+
+function createRankingUI(sortedRanking) {
+    let ranking = document.getElementById('ranking-list');
+
+    for(let i = 0; i < sortedRanking.length; i++) {
+        let player = document.createElement('div');
+        let name = document.createElement('h4');
+        let money = document.createElement('p');
+
+        name.innerText = sortedRanking[i].name;
+        money.innerText = sortedRanking[i].summe;
+
+        player.appendChild(name);
+        player.appendChild(money);
+        player.classList.add('rank');
+
+        (i === 0) ? player.classList.add('firstRank') :
+            (i === 1) ? player.classList.add('secondRank') :
+                (i === 2) ? player.classList.add('thirdRank') :
+                    player.classList.add('otherRank');
+
+        ranking.appendChild(player);
+    }
+}
+
+function sortRanking(player1, player2) {
+    return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
+}
+
+function updateRankingUI(sortedRanking) {
+    let ranking = document.getElementsByClassName('rank');
+
+    for( let i = 0; i < ranking.length; i++) {
+        ranking[i].firstChild.innerText = sortedRanking[i].name;
+        ranking[i].lastChild.innerText = sortedRanking[i].summe;
+    }
+}
+
+//=================================================================//
+//=== NEWS ========================================================//
+//=================================================================//
+
+let news = {};
+
+async function getNews(_timeStamp) {
+    let response = await fetch('/api/nachrichten?letzteZeit=' + _timeStamp, {
+        method: 'GET',
+        headers: {'accept': 'application/json'}
+    });
+
+    if (response.ok) {
+        return await response.json();
+    } else {
+        // TODO [!]: log failure into log window (for user)
+        console.log(response.status + ' :: ' + response.statusText)
+    }
+}
+
+async function updateNews() {
+    // get newest news
+    let temp = await getNews(news.latestTimeStamp);
+
+    // if no new news could be fetched, set updated to false
+    // background: If the array got updated, the UI will get updated too, if not none will be updated.
+    //             this way, we get fewer DOM-manipulations which usually cost quite much processing power.
+    if (temp.length !== 0) {
+        news.updated = true
+
+        // add all new Items to the news array
+        for (let item of temp) {
+            news.arr.push(item);
+        }
+
+        // remove all elements exceeding the max amount
+        while(news.arr.length > news.maxNews) {
+            news.arr.shift();
+        }
+
+        // if the news array has any items update the latest timestamp to the one of the last item in the list
+        if (news.arr.length - 1 >= 0) {
+            news.latestTimeStamp = news.arr[news.arr.length - 1].zeit;
+        }
+    } else {
+        news.updated = false
+    }
+}
+
+// TODO: add news UI
+function createNewsUI(_newsData) {
+    let newsList = document.getElementById('news-list');
+    let newsBlock = document.createElement('div');
+    let time = document.createElement('p');
+    let message = document.createElement('p');
+
+    time.classList.add('news-time');
+    time.innerText = correctUhrzeit(_newsData.uhrzeit);
+
+    message.classList.add('news-message');
+    message.innerText = _newsData.text;
+
+    newsBlock.classList.add('news');
+    newsBlock.appendChild(time);
+    newsBlock.appendChild(message);
+
+    newsList.prepend(newsBlock);
+}
+
+function updateNewsUI(_newsElement, _newsData) {
+    _newsElement.firstChild.innerText = correctUhrzeit(_newsData.uhrzeit);
+    _newsElement.lastChild.innerText = _newsData.text;
+}
+
+function updateNewsHandler() {
+    if(news.updated) {
+        let list = document.getElementsByClassName('news');
+
+        for( let i = 0; i < news.arr.length; i++) {
+            if( i >= list.length) {
+                console.log(news.arr[i])
+                createNewsUI(news.arr[i]);
+            } else {
+                updateNewsUI(list[list.length - (i+1)], news.arr[i]);
+            }
+        }
+    }
+}
 
 //=================================================================//
 //=== INIT ========================================================//
@@ -253,18 +735,45 @@ window.onload = async () => {
     user.getPercent = getPercent;
 
     await updateBalance(user);
-
     updateName(user);
+
     // STOCKS
     stocks = await getStocks();
 
     addHistoryArray();
     createStocksUI();
 
+    // PORTFOLIO
+    portfolio = await getPortfolio();
+    await initPortfolioUI();
+
+    // RANKING
+    let ranking = await getPortfolioAll();
+    ranking.sort((player1, player2) => {
+        return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
+    });
+    createRankingUI(ranking);
+
+    // NEWS
+    news.arr = [];
+    news.latestTimeStamp = 1;
+    news.maxNews = 20;
+    news.updated = false;
+    console.log(news);
+
     let updater = setInterval(async () => {
         await updateBalance(user);
         await updateStocks();
         updateStocksUI();
         highlightStocks();
-    }, 500)
+        updatePortfolio();
+        updatePortfolioUI();
+        let ranking = await getPortfolioAll();
+        ranking.sort((player1, player2) => {
+            return (player1.summe < player2.summe) ? 1 : (player1.summe > player2.summe) ? -1 : 0;
+        });
+        updateRankingUI(ranking);
+        await updateNews();
+        updateNewsHandler();
+    }, 500);
 }

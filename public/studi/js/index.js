@@ -905,7 +905,6 @@ window.onload = async () => {
                 errors.arr.push('SERVER ERROR: Connection could not be established');
             }
         }
-
         errorManager();
     }, 500);
 }

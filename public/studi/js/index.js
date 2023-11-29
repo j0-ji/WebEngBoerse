@@ -665,7 +665,7 @@ async function getNews(_timeStamp) {
  * Older news get removed to not fill the DOM too much.
  * */
 async function updateNews() {
-    // get newest news
+    // get the newest news
     let temp = await getNews(news.latestTimeStamp);
 
     // if no new news could be fetched, set updated to false
@@ -731,7 +731,11 @@ function updateNewsUI(_newsElement, _newsData) {
  * */
 function adaptNewsMessage(_text) {
     let temp = _text.split(': ');
-    return temp[0] + ': ' + temp[1] + '\n' + temp[2];
+    if (temp.length === 3) {
+        return temp[0] + ': ' + temp[1] + '\n' + temp[2];
+    } else if (temp.length === 2) {
+        return temp[0] + ': ' + temp[1];
+    }
 }
 
 /**

@@ -35,7 +35,7 @@ body {
     gap: 10px;
 
     /*
-        Subjektives empfinden: Bei einem Spiel ist es unnötig bzw. eine Ablenkung, wenn der Cursor sich über text ändert.
+        Subjektives empfinden: Bei einem Spiel ist es unnötig bzw. eine Ablenkung, wenn der Cursor sich über text ändert
         Die einzigen Fälle, bei denen sich der Cursor ändern soll sind Buttons.
     */
     cursor: default;
@@ -50,7 +50,7 @@ body {
 
 header {
     grid-column: 1 / 3;
-    grid-row: 1 / 2 ;
+    grid-row: 1 / 2;
 
     display: flex;
     flex-direction: row;
@@ -169,6 +169,7 @@ header > h1 {
     overflow-y: auto;
     overflow-x: hidden;
 }
+
 .stock {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -240,6 +241,10 @@ header > h1 {
     background-color: white;
 }
 
+/*
+[IMPORTANT] used for svg. used imported name space,
+which knows how to handle the given parameters
+*/
 .polyline-graph {
     fill: none;
     stroke: blue;
@@ -409,5 +414,5 @@ header > h1 {
     --heading-2: 38px;
     --heading-3: 32px;
     --heading-4: 26px;
-    --paragraph: 22px
+    --paragraph: 22px;
 }

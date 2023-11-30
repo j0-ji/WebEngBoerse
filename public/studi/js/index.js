@@ -173,8 +173,8 @@ function createStocksUI() {
 		};
 
 		buySell.classList.add('buy-sell');
-		buySell.appendChild(createTransactionButton(['button', 'sell1k'], '-1k', -1000));
 		buySell.appendChild(createTransactionButton(['button', 'sell10k'], '-10k', -10000));
+		buySell.appendChild(createTransactionButton(['button', 'sell1k'], '-1k', -1000));
 		buySell.appendChild(createTransactionButton(['button', 'buy1k'], '+1k', 1000));
 		buySell.appendChild(createTransactionButton(['button', 'buy10k'], '+10k', 10000));
 
@@ -322,9 +322,11 @@ async function tradeStock(_stockName, _count) {
 	});
 
 	if (response.ok) {
-		return await response.json();
+		let data = await response.json();
+		transactionManager.push(data);
+		return data;
 	} else {
-		errors.arr.push('TRANSACTION: Invalid amount (' + _count + ') of stocks (' + _stockName + '). Transaction failed.');
+		errorManager.push('TRANSACTION: Invalid amount (' + _count + ') of stocks (' + _stockName + '). Transaction failed.');
 		return {};
 	}
 }
@@ -657,78 +659,117 @@ function newsManager() {
 //=================================================================//
 //=== ERROR =======================================================//
 //=================================================================//
+class ErrorManager {
+	errors;
+	maxErrors;
 
-let errors = {};
+	constructor(_maxErrors) {
+		this.errors = [];
+		this.maxErrors = _maxErrors + 1; // for correct calculations
+	}
 
-/**
- * Function for creating an error UI-Element and filling it with the given message.
- * @param _errorData - String containing the error-data
- * */
-function createErrorUI(_errorData) {
-	let errorLog = document.getElementById('error-log');
-	let errorBlock = document.createElement('div');
-	let errorMessage = document.createElement('p');
+	push(_errorMessage) {
+		this.errors.push(_errorMessage);
 
-	errorMessage.classList.add('error-message');
-	errorMessage.innerText = _errorData;
-
-	errorBlock.classList.add('errors');
-	errorBlock.classList.add('red-error');
-	errorBlock.appendChild(errorMessage);
-
-	errorLog.prepend(errorBlock);
-
-
-	setTimeout(() => {
-		errorBlock.classList.remove('red-error');
-	}, 500);
-}
-
-/**
- * Updates the given UI-Element with the given error-data
- * @param _errorElement - DOMElement to get new text
- * @param _errorData - String containing the error-data
- * */
-function updateErrorUI(_errorElement, _errorData) {
-	_errorElement.firstChild.innerText = _errorData;
-}
-
-/**
- * Manager for handling errors. If the list of errors is shorter than the max, it adds new UI-Elements. If max error
- * UI-Elements count is reached, the existing Elements get updated instead of deleted and recreated
- * */
-// Same issue as above... sounded nice on paper, but now I'm not sure if it is really that much more efficient than
-// creating new UI-Elements and then deleting the oldest ones, which are above the limit...
-function errorManager() {
-	if (errors.arr.length > errors.maxErrors || errors.arr.length > errors.lastLength) {
-		// if more than max allowed errors, remove the oldest errors
-		while (errors.arr.length > errors.maxErrors) {
-			errors.arr.shift();
+		while (this.errors.length > this.maxErrors) {
+			this.errors.shift();
 		}
 
-		// get the list of errors we currently have displayed
-		let list = document.getElementsByClassName('errors');
+		this.updateErrorsList();
+	}
 
-		for (let i = 0; i < errors.arr.length; i++) {
-			// if we don't have more errors than error-DOM-Elements already exist, we create a new DOM-Element with
-			// the needed information. Otherwise, we just change the content of what we already have.
-			if (i >= list.length) {
-				createErrorUI(errors.arr[i]);
-			} else {
-				if (i === errors.arr.length - 1) {
-					// the effect is unfortunately not the same, compared to creating a new Element
-					// because now it not only fades out but fades in and then out...
-					list[list.length - (i + 1)].classList.add('red-error');
-					setTimeout(() => {
-						list[list.length - (i + 1)].classList.remove('red-error');
-					}, 600);
-				}
-				updateErrorUI(list[list.length - (i + 1)], errors.arr[i]);
-			}
+	buildErrorDOM(_message) {
+		let element = document.createElement('div');
+		let message = document.createElement('p');
+
+		message.classList.add('error-message');
+		message.innerText = _message;
+
+		element.classList.add('errors');
+		element.classList.add('red-error');
+		element.appendChild(message);
+
+		document.getElementById('error-list').prepend(element);
+
+		setTimeout(() => {
+			element.classList.remove('red-error');
+		}, 500);
+	}
+
+	updateErrorsList() {
+		if (this.errors.length < this.maxErrors) {
+			this.buildErrorDOM(this.errors[this.errors.length - 1]);
+		} else {
+			this.buildErrorDOM(this.errors[this.errors.length - 1]);
+			document.getElementById('error-list').lastChild.remove();
 		}
-		errors.lastLength = errors.arr.length;
 	}
 }
+
+let errorManager = new ErrorManager(5);
+
+//=================================================================//
+//=== TRANSACTIONS ================================================//
+//=================================================================//
+
+class TransactionManager {
+	transactions;
+	maxTransactions;
+
+	constructor(_maxTransactions) {
+		this.transactions = [];
+		this.maxTransactions = _maxTransactions + 1; // for correct calculations
+	}
+
+	push(_transaction) {
+		this.transactions.push(_transaction);
+
+		while (this.transactions.length > this.maxTransactions) {
+			this.transactions.shift();
+		}
+
+		this.updateTransactionList();
+	}
+
+	buildTransactionDOM(_i) {
+		let element = document.createElement('div');
+
+		let createSubElement = (_classArr, _text) => {
+			// create HTML-Element
+			let subElement = document.createElement('p');
+			// apply classes
+			for (let className of _classArr) {
+				subElement.classList.add(className);
+			}
+			// apply text
+			subElement.innerText = _text;
+			return subElement;
+		};
+
+		element.classList.add('transactions');
+		element.appendChild(createSubElement(
+			['transaction-message'],
+			this.transactions[_i].success,
+		));
+		element.appendChild(createSubElement(
+			['transaction-value'],
+			'Umsatz: ' + Math.floor((-1 * this.transactions[_i].umsatz.anzahl) * this.transactions[_i].umsatz.aktie.preis),
+		));
+
+		document.getElementById('transaction-list').prepend(element);
+	}
+
+	updateTransactionList() {
+		if (this.transactions.length < this.maxTransactions) {
+			this.buildTransactionDOM(this.transactions.length - 1);
+		} else {
+			this.buildTransactionDOM(this.transactions.length - 1);
+			document.getElementById('transaction-list').lastChild.remove();
+		}
+	}
+}
+
+let transactionManager = new TransactionManager(10);
 
 //=================================================================//
 //=== INIT ========================================================//
@@ -769,11 +810,6 @@ window.onload = async () => {
 	news.maxNews = 20;
 	news.updated = false;
 
-	// ERROR-LOG
-	errors.arr = [];
-	errors.lastLength = errors.arr.length;
-	errors.maxErrors = 10;
-
 	setInterval(async () => {
 		try {
 			await updateBalance(user);
@@ -794,10 +830,9 @@ window.onload = async () => {
 			await updateNews();
 			newsManager();
 		} catch (ignored) {
-			if (errors.arr[errors.arr.length - 1] !== 'SERVER ERROR: Connection could not be established') {
-				errors.arr.push('SERVER ERROR: Connection could not be established');
+			if (errorManager.errors[errorManager.errors.length - 1] !== 'SERVER ERROR: Connection could not be established') {
+				errorManager.push('SERVER ERROR: Connection could not be established');
 			}
 		}
-		errorManager();
 	}, 500);
 };

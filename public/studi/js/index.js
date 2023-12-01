@@ -1,67 +1,6 @@
 'use strict';
 
 //=================================================================//
-//=== FETCHERs ====================================================//
-//=================================================================//
-
-/**
- * Function fetching the current user-data.
- * @returns Object - Object containing stock-data
- * @throws Error - error with code
- * */
-async function fetchUserData() {
-	let response = await fetch('/api/benutzerdaten', {
-		method: 'GET',
-		headers: {'accept': 'application/json'},
-	});
-
-	if (response.ok) {
-		return await response.json();
-	} else {
-		throw new Error(`ERROR: Status: ${response.status}`);
-	}
-}
-
-
-/**
- * Function for getting the Portfolio values and according player names of everyone.
- * @return Object - portfolios with name/value of everyone
- * @throws Error - error with code
- * */
-async function fetchPortfolioAll() {
-	let response = await fetch('/api/depotAlle', {
-		method: 'GET',
-		headers: {'accept': 'application/json'},
-	});
-
-	if (response.ok) {
-		return await response.json();
-	} else {
-		throw new Error(`ERROR: Status: ${response.status}`);
-	}
-}
-
-/**
- * Function for getting News from the server. News are about players buying/selling stocks and
- * the amounts of stocks in those trades.
- * @param _timeStamp - time in milliseconds (1 gets all news from the server)
- * @returns Object - Object containing new data since last fetch
- * @throws Error - error with code
- * */
-async function fetchNews(_timeStamp) {
-	let response = await fetch('/api/nachrichten?letzteZeit=' + _timeStamp, {
-		method: 'GET',
-		headers: {'accept': 'application/json'},
-	});
-
-	if (response.ok) {
-		return await response.json();
-	} else {
-		throw new Error(`ERROR: Status: ${response.status}`);
-	}
-}
-
-//=================================================================//
 //=== UTIL ))======================================================//
 //=================================================================//
 
@@ -90,24 +29,26 @@ class BalanceManager {
 
 	constructor(_errorManager) {
 		this.#errorManager = _errorManager;
-		try {
-			this.#fetchUserData().then((data) => {
-				this.#username = data.name;
-				this.#initBalance = data.kontostand;
-				this.#currentBalance = data.kontostand;
-			});
-		} catch (error) {
-			this.#errorManager.push(error.message);
-		}
-
 	}
 
 	/**
 	 * short initial function for displaying the users name and current balance (and percent).
 	 * */
 	async init() {
+		try {
+			let data = await this.#fetchUserData();
+			this.#username = data.name;
+			this.#initBalance = data.kontostand;
+			this.#currentBalance = data.kontostand;
+		} catch (error) {
+			this.#errorManager.push(error.message);
+			this.#username = '';
+			this.#initBalance = 0;
+			this.#currentBalance = 0;
+		}
+
 		document.getElementById('player-name').innerText = this.#username;
-		await updateBalance();
+		await this.updateBalance();
 	}
 
 	/**
@@ -117,7 +58,7 @@ class BalanceManager {
 	 * */
 	async updateBalance() {
 		try {
-			let data = await fetchUserData();
+			let data = await this.#fetchUserData();
 			this.#currentBalance = data.kontostand;
 		} catch (error) {
 			this.#errorManager.push(error.message);
@@ -173,18 +114,19 @@ class StocksManager {
 
 	constructor(_errorManager, _maxHistory, _svgHeight) {
 		this.#errorManager = _errorManager;
-		try {
-			this.#fetchStocks().then((data) => {
-				this.#stocks = data;
-				this.#addAttributes();
-			});
-		} catch (error) {
-			this.#errorManager.push(error.message);
-		}
 		this.#stocks = [];
 		this.#maxHistory = _maxHistory;
 		this.#svgViewBoxHeight = _svgHeight;
 		this.#svgns = 'http://www.w3.org/2000/svg';
+	}
+
+	async init() {
+		try {
+			this.#stocks = await this.#fetchStocks();
+			this.#addAttributes();
+		} catch (error) {
+			this.#errorManager.push(error.message);
+		}
 	}
 
 	/**
@@ -244,13 +186,13 @@ class StocksManager {
 	/**
 	 * Function to create the UI for all stocks.
 	 * */
-	createStocksUI(_portfolioManager, _transactionManager) {
+	createStocksUI(_portfolioManager, _transactionManager, _stocks) {
 		let stocksUI = document.getElementById('stocks');
 
 		for (let i = 0; i < this.#stocks.length; i++) {
 			let stock = document.createElement('div');
-			let svg = document.createElementNS(svgns, 'svg');
-			let polyline = document.createElementNS(svgns, 'polyline');
+			let svg = document.createElementNS(this.#svgns, 'svg');
+			let polyline = document.createElementNS(this.#svgns, 'polyline');
 			let buySell = document.createElement('div');
 
 			let createTransactionButton = (_classArr, _text, _stockCount) => {
@@ -262,8 +204,8 @@ class StocksManager {
 				button.addEventListener('click', async () => {
 					let response = await _transactionManager.push(this.#stocks[i].name, _stockCount);
 
-					if (!isEmpty(response)) {
-						_portfolioManager.setPosition(i, _stockCount);
+					if (response) {
+						_portfolioManager.setPosition(i, _stockCount, _stocks);
 					}
 				});
 				return button;
@@ -348,38 +290,28 @@ class StocksManager {
 			let tempHistory = [...this.#stocks[i].history];
 			tempHistory.pop();
 
-			switch (true) {
-				case (
-					this.#stocks[i].history[this.#stocks[i].history.length - 1] > this.#average(tempHistory) &&
-					this.#stocks[i].history[9] !== 1
-				):
-					stockUIs[i].classList.add('stock-hl-green');
-					this.#stocks[i].green = true;
-					if (this.#stocks[i].red) {
-						stockUIs[i].classList.remove('stock-hl-red');
-						this.#stocks[i].red = false;
-					}
-					break;
-				case (
-					this.#stocks[i].history[this.#stocks.history.length - 1] < this.#average(tempHistory) &&
-					this.#stocks[i].history[9] !== 1
-				):
-					stockUIs[i].classList.add('stock-hl-red');
-					this.#stocks[i].red = true;
-					if (this.#stocks[i].green) {
-						stockUIs[i].classList.remove('stock-hl-green');
-						this.#stocks[i].green = false;
-					}
-					break;
-				default:
-					if (this.#stocks[i].green) {
-						stockUIs[i].classList.remove('stock-hl-green');
-						this.#stocks[i].green = false;
-					} else if (this.#stocks[i].red) {
-						stockUIs[i].classList.remove('stock-hl-red');
-						this.#stocks[i].red = false;
-					}
-					break;
+			if (this.#stocks[i].history[this.#stocks[i].history.length - 1] > this.#average(tempHistory) && this.#stocks[i].history[this.#stocks[i].history.length - 1] !== 1) {
+				stockUIs[i].classList.add('stock-hl-green');
+				this.#stocks[i].green = true;
+				if (this.#stocks[i].red) {
+					stockUIs[i].classList.remove('stock-hl-red');
+					this.#stocks[i].red = false;
+				}
+			} else if (this.#stocks[i].history[this.#stocks[i].history.length - 1] < this.#average(tempHistory) && this.#stocks[i].history[this.#stocks[i].history.length - 1] !== 1) {
+				stockUIs[i].classList.add('stock-hl-red');
+				this.#stocks[i].red = true;
+				if (this.#stocks[i].green) {
+					stockUIs[i].classList.remove('stock-hl-green');
+					this.#stocks[i].green = false;
+				}
+			} else {
+				if (this.#stocks[i].green) {
+					stockUIs[i].classList.remove('stock-hl-green');
+					this.#stocks[i].green = false;
+				} else if (this.#stocks[i].red) {
+					stockUIs[i].classList.remove('stock-hl-red');
+					this.#stocks[i].red = false;
+				}
 			}
 		}
 	}
@@ -411,13 +343,17 @@ class PortfolioManager {
 	#errorManager;
 
 	constructor(_errorManager, _transactionManager) {
+		this.#positionen = [];
+		this.#wert = 0;
 		this.#errorManager = _errorManager;
 		this.#transactionManager = _transactionManager;
+	}
+
+	async init() {
 		try {
-			this.#fetchPortfolio().then((data) => {
-				this.#positionen = data.positionen;
-				this.#wert = data.wert;
-			});
+			let data = await this.#fetchPortfolio();
+			this.#positionen = data.positionen;
+			this.#wert = data.wert;
 		} catch (error) {
 			this.#errorManager.push(error.message);
 		}
@@ -467,10 +403,10 @@ class PortfolioManager {
 	 * */
 	#createPositionUI(_i, _stocks) {
 		let position = document.createElement('div');
-		let elements = [];
-		for (let i = 0; i < 4; i++) {
-			elements.push(document.createElement('p'));
-		}
+		let name = document.createElement('p');
+		let sellAll = document.createElement('p');
+		let count = document.createElement('p');
+		let value = document.createElement('p');
 
 		let closePosition = () => {
 			position.remove();
@@ -480,61 +416,50 @@ class PortfolioManager {
 		};
 
 		// name
-		elements[0].classList.add('position-name');
-		elements[0].innerText = this.#positionen[_i].aktie.name;
+		name.classList.add('position-name');
+		name.innerText = this.#positionen[_i].aktie.name;
 
 		// emergency-sell button
-		elements[1].classList.add('emergency-sell');
-		elements[1].innerText = 'SELL';
-		elements[1].title = 'Click if you want to CLOSE WHOLE POSITION.';
-		elements[1].addEventListener('click', async () => {
+		sellAll.classList.add('emergency-sell');
+		sellAll.innerText = 'SELL';
+		sellAll.title = 'Click if you want to CLOSE WHOLE POSITION.';
+		sellAll.addEventListener('click', async () => {
 			let count = 0 - this.#positionen[_i].anzahl;
 			let response = await this.#transactionManager.push(this.#positionen[_i].aktie.name, count);
 
 			if (response) {
 				closePosition();
+				this.#positionen[_i].anzahl += count;
 			}
 		});
 
 		// stock-count in given position
-		elements[2].classList.add('position-count');
+		count.classList.add('position-count');
 		let updatePositionCount = setInterval(() => {
 			if (this.#positionen[_i].anzahl === 0) {
 				closePosition();
 			} else {
-				elements[2].innerText = this.#positionen[_i].anzahl;
+				count.innerText = this.#positionen[_i].anzahl;
 			}
 		}, 500);
 
 		// stock-value in given position
-		elements[3].classList.add('position-value');
+		value.classList.add('position-value');
 		let updatePositionValue = setInterval(() => {
-			elements[3].innerText = Math.floor(this.#positionen[_i].anzahl * _stocks[_i].preis);
+			value.innerText = Math.floor(this.#positionen[_i].anzahl * _stocks[_i].preis);
 		}, 500);
 
 		position.classList.add('position');
 		position.title = 'An open position. Can be modified by buying or selling stocks.';
-		for (let element of elements) {
-			position.appendChild(element);
-		}
+		position.appendChild(name);
+		position.appendChild(sellAll);
+		position.appendChild(count);
+		position.appendChild(value);
 
 		return position;
 	}
 
-	updatePortfolioUI() {
-		document.getElementById('portfolio-value').innerText = Math.floor(this.#wert);
-
-		let positions = document.getElementById('positions');
-
-		for (let i = 0; i < this.#positionen.length; i++) {
-			if (this.#positionen[i].anzahl > 0 && !this.#positionen[i].hasUI) {
-				positions.appendChild(createPositionUI(i));
-				this.#positionen[i].hasUI = true;
-			}
-		}
-	}
-
-	updatePortfolioBackend(_stocks) {
+	updatePortfolio(_stocks) {
 		this.#wert = 0;
 
 		for (let i = 0; i < this.#positionen.length; i++) {
@@ -542,13 +467,21 @@ class PortfolioManager {
 				this.#wert += this.#positionen[i].anzahl * _stocks[i].preis;
 			}
 		}
+
+		document.getElementById('portfolio-value').innerText = Math.floor(this.#wert);
 	}
 
 	/**
 	 * updates the position on the given index with the given stock amount.
 	 * */
-	setPosition(_i, _stockAmount) {
+	setPosition(_i, _stockAmount, _stocks) {
 		this.#positionen[_i].anzahl += _stockAmount;
+
+		if (!this.#positionen[_i].hasUI) {
+			let positions = document.getElementById('positions');
+			positions.appendChild(this.#createPositionUI(_i, _stocks));
+			this.#positionen[_i].hasUI = true;
+		}
 	}
 }
 
@@ -560,10 +493,14 @@ class PortfolioManager {
  * Class for managing transactions.
  * */
 class TransactionManager {
+	#errorManager;
+	#list;
+	#maxTransactions;
+
 	constructor(_errorManager, _maxTransactions) {
-		this.list = [];
-		this.maxTransactions = _maxTransactions + 1; // for correct calculations
-		this.errorManager = _errorManager;
+		this.#errorManager = _errorManager;
+		this.#list = [];
+		this.#maxTransactions = _maxTransactions + 1; // for correct calculations
 	}
 
 	/**
@@ -577,11 +514,11 @@ class TransactionManager {
 	async push(_stockName, _count) {
 		try {
 			let data = await this.#transaction(_stockName, _count);
-			this.list.push(data);
+			this.#list.push(data);
 			this.#updateTransactionList();
 			return true;
 		} catch (error) {
-			this.errorManager.push(error.message);
+			this.#errorManager.push(error.message);
 			return false;
 		}
 	}
@@ -640,11 +577,11 @@ class TransactionManager {
 		element.classList.add('transactions');
 		element.appendChild(createSubElement(
 			['transaction-message'],
-			this.list[_i].success,
+			this.#list[_i].success,
 		));
 		element.appendChild(createSubElement(
 			['transaction-value'],
-			'Umsatz: ' + Math.floor((-1 * this.list[_i].umsatz.anzahl) * this.list[_i].umsatz.aktie.preis),
+			'Umsatz: ' + Math.floor((-1 * this.#list[_i].umsatz.anzahl) * this.#list[_i].umsatz.aktie.preis),
 		));
 
 		document.getElementById('transaction-list').prepend(element);
@@ -655,15 +592,291 @@ class TransactionManager {
 	 * @returns void
 	 * */
 	#updateTransactionList() {
-		while (this.list.length > this.maxTransactions) {
-			this.list.shift();
+		while (this.#list.length > this.#maxTransactions) {
+			this.#list.shift();
 		}
 
-		if (this.list.length < this.maxTransactions) {
-			this.#buildTransactionDOM(this.list.length - 1);
+		if (this.#list.length < this.#maxTransactions) {
+			this.#buildTransactionDOM(this.#list.length - 1);
 		} else {
-			this.#buildTransactionDOM(this.list.length - 1);
+			this.#buildTransactionDOM(this.#list.length - 1);
 			document.getElementById('transaction-list').lastChild.remove();
+		}
+	}
+}
+
+//=================================================================//
+//=== RANKING =====================================================//
+//=================================================================//
+/**
+ * Class for managing the ranking-system
+ * */
+class RankingManager {
+	#ranking;
+	#errorManager;
+
+	/**
+	 * Constructor for the ranking-manager.
+	 * @param _errorManager - instance of the ErrorManager-class
+	 * @see ErrorManager
+	 * */
+	constructor(_errorManager) {
+		this.#errorManager = _errorManager;
+		this.#ranking = [];
+	}
+
+	/**
+	 * Short init function for initializing the Array of people/wealth and the UI.
+	 * @public
+	 * */
+	async init() {
+		try {
+			this.#ranking = await this.#fetchPortfolioAll();
+		} catch (error) {
+			this.#errorManager.push(error.message);
+		}
+		this.#ranking.sort(this.#sortRanking);
+		this.#createRankingUI();
+	}
+
+	/**
+	 * Function for getting the Portfolio values and according player names of everyone.
+	 * @return Object - portfolios with name/value of everyone
+	 * @throws Error - error with code
+	 * @private
+	 * */
+	async #fetchPortfolioAll() {
+		let response = await fetch('/api/depotAlle', {
+			method: 'GET',
+			headers: {'accept': 'application/json'},
+		});
+
+		if (response.ok) {
+			return await response.json();
+		} else {
+			throw new Error(`ERROR: Status: ${response.status}`);
+		}
+	}
+
+	/**
+	 * Function creating the ranking UI. Caution: The prerequisite for guaranteeing functionality
+	 * is that the number of players does not change without a server restart.
+	 * @private
+	 * */
+	#createRankingUI() {
+		let ranking = document.getElementById('ranking-list');
+
+		for (let i = 0; i < this.#ranking.length; i++) {
+			let player = document.createElement('div');
+			let name = document.createElement('h4');
+			let money = document.createElement('p');
+
+			name.innerText = this.#ranking[i].name;
+			money.innerText = this.#ranking[i].summe;
+
+			player.appendChild(name);
+			player.appendChild(money);
+			player.classList.add('rank');
+
+			switch (i) {
+				case 0:
+					player.classList.add('firstRank');
+					break;
+				case 1:
+					player.classList.add('secondRank');
+					break;
+				case 2:
+					player.classList.add('thirdRank');
+					break;
+				default:
+					player.classList.add('otherRank');
+					break;
+			}
+
+			ranking.appendChild(player);
+		}
+	}
+
+	/**
+	 * An updater for the ranking UI. It updates the positions of the players according their wealth.
+	 * @public
+	 * */
+	async updateRankingUI() {
+		try {
+			this.#ranking = await this.#fetchPortfolioAll();
+		} catch (error) {
+			this.#errorManager.push(error.message);
+		}
+		this.#ranking.sort(this.#sortRanking);
+
+		let list = document.getElementsByClassName('rank');
+
+		for (let i = 0; i < list.length; i++) {
+			list[i].firstChild.innerText = this.#ranking[i].name;
+			list[i].lastChild.innerText = this.#ranking[i].summe;
+		}
+	}
+
+	/**
+	 * Simple sort-method for sorting the players according their wealth.
+	 * @private
+	 * */
+	#sortRanking(_player1, _player2) {
+		return (_player1.summe < _player2.summe) ? 1 : (_player1.summe > _player2.summe) ? -1 : 0;
+	}
+}
+
+//=================================================================//
+//=== NEWS ========================================================//
+//=================================================================//
+/**
+ * Class for managing the news-system
+ * */
+class NewsManager {
+	#errorManager;
+	#news; // note: most current news are at index (0), oldest on index (#maxNews - 1)
+	#latestTimestamp;
+	#maxNews;
+	#updated;
+
+	constructor(_errorManager, _maxNews) {
+		this.#errorManager = _errorManager;
+		this.#news = [];
+		this.#latestTimestamp = 1;
+		this.#maxNews = _maxNews;
+		this.#updated = false;
+	}
+
+	async init() {
+		await this.updateNewsUI();
+	}
+
+	async #updateNews() {
+		try {
+			let temp = await this.#fetchNews();
+			if (temp.length === 0) {
+				this.#updated = false;
+			} else {
+				this.#updated = true;
+				this.#latestTimestamp = temp[temp.length - 1].zeit;
+
+				// N → temp.length
+				// M → this.#news.length
+				// =============================================
+				// Anfangs mit push() und shift() umgesetzt:
+				// Laufzeit: N * O(1) + N * O(N) => 0(N²+N)
+				// ==============================================
+				// Aktuelle umsetzung mit reverse(), unshift() und pop():
+				// Laufzeit: 1 * O(N) + 1 * O(N+M) + N * O(1) => O(3N+M)
+				temp.reverse();
+				this.#news.unshift(...temp);
+				while (this.#news.length > this.#maxNews) {
+					this.#news.pop();
+				}
+
+				this.#latestTimestamp = this.#news[0].zeit;
+			}
+		} catch (error) {
+			this.#errorManager.push(error.message);
+		}
+	}
+
+	/**
+	 * Method for getting News from the server. News are about players buying/selling stocks and
+	 * the amounts of stocks in those trades.
+	 * @returns Object - Object containing new data since last fetch
+	 * @throws Error - error with code
+	 * */
+	async #fetchNews() {
+		let response = await fetch('/api/nachrichten?letzteZeit=' + this.#latestTimestamp, {
+			method: 'GET',
+			headers: {'accept': 'application/json'},
+		});
+
+		if (response.ok) {
+			return await response.json();
+		} else {
+			throw new Error(`ERROR: Status: ${response.status}`);
+		}
+	}
+
+	#createNewsUI(_listElement, _i) {
+		let element = document.createElement('div');
+		let time = document.createElement('p');
+		let message = document.createElement('p');
+
+		time.classList.add('news-time');
+		time.innerText = this.#correctUhrzeit(this.#news[_i].uhrzeit);
+
+		message.classList.add('news-message');
+		message.innerText = this.#news[_i].text;
+
+		element.classList.add('news');
+		element.appendChild(time);
+		element.appendChild(message);
+
+		_listElement.append(element);
+	}
+
+	async updateNewsUI() {
+		await this.#updateNews();
+		if (this.#updated) {
+			// element containing the news
+			let newsList = document.getElementById('news-list');
+			// list of the single news-elements
+			let listOfNews = document.getElementsByClassName('news');
+
+			for (let i = 0; i < this.#news.length; i++) {
+				// editing the news message
+				try {
+					this.#news[i].text = this.#adaptNewsMessage(this.#news[i].text);
+				} catch (error) {
+					this.#errorManager.push(error.message);
+				}
+
+				// if we don't have more news than news-DOM-Elements already exist, we create a new DOM-Element with
+				// the needed information. Otherwise, we just change the content of what we already have.
+				if (i >= listOfNews.length) {
+					this.#createNewsUI(newsList, i);
+				} else {
+					listOfNews[i].firstChild.innerText = this.#correctUhrzeit(this.#news[i].uhrzeit);
+					listOfNews[i].lastChild.innerText = this.#news[i].text;
+				}
+			}
+		}
+	}
+
+	/**
+	 * Method for correcting the displayed time. Changes e.g.: 15:0 => 15:00
+	 * @returns String - corrected time
+	 * @private
+	 * */
+	#correctUhrzeit(_uhrzeit) {
+		let temp = _uhrzeit.split(':');
+		let temp2;
+		if (parseInt(temp[1]) === 0) {
+			temp2 = temp[0] + ':00';
+		} else {
+			temp2 = _uhrzeit;
+		}
+		return temp2;
+	}
+
+	/**
+	 * Small method for adding a small linebreak after the name of the user.
+	 * This way all news-messages have the linebreaks at the same place and look better.
+	 * @returns String - adapted message
+	 * @throws Error - if news string is invalid
+	 * @private
+	 * */
+	#adaptNewsMessage(_text) {
+		let temp = _text.split(': ');
+		if (temp.length === 3) {
+			return temp[0] + ': ' + temp[1] + '\n' + temp[2];
+		} else if (temp.length === 2) {
+			return temp[0] + ': ' + temp[1];
+		} else {
+			throw new Error('SERVER ERROR: Got invalid news: ' + temp);
 		}
 	}
 }
@@ -723,23 +936,34 @@ window.onload = async () => {
 	let errorManager = new ErrorManager(5);
 	let transactionManager = new TransactionManager(errorManager, 10);
 	let portfolioManager = new PortfolioManager(errorManager, transactionManager);
-	let stocksManager = new StocksManager(errorManager, 20, 1000);
+	let stocksManager = new StocksManager(errorManager, 10, 1000);
 	let balanceManager = new BalanceManager(errorManager);
+	let rankingManager = new RankingManager(errorManager);
+	let newsManager = new NewsManager(errorManager, 10);
 
-	stocksManager.createStocksUI(portfolioManager, transactionManager);
+	await stocksManager.init();
+	stocksManager.createStocksUI(portfolioManager, transactionManager, stocksManager.getStocks());
 
+	await portfolioManager.init();
 	await portfolioManager.initPortfolioUI(stocksManager.getStocks());
 
 	await balanceManager.init();
 
-	setInterval(() => {
-		balanceManager.updateBalance();
+	await rankingManager.init();
 
-		stocksManager.updateStocks();
+	await newsManager.init();
+
+	setInterval(async () => {
+		await balanceManager.updateBalance();
+
+		await stocksManager.updateStocks();
 		stocksManager.updateStocksUI();
 		stocksManager.highlightStocks();
 
-		portfolioManager.updatePortfolioBackend(stocksManager.getStocks());
-		portfolioManager.updatePortfolioUI();
+		portfolioManager.updatePortfolio(stocksManager.getStocks());
+
+		await rankingManager.updateRankingUI();
+
+		await newsManager.updateNewsUI();
 	}, 500);
 };

@@ -186,7 +186,7 @@ class StocksManager {
 	/**
 	 * Function to create the UI for all stocks.
 	 * */
-	createStocksUI(_portfolioManager, _transactionManager, _stocks) {
+	createStocksUI(_errorManager, _portfolioManager, _transactionManager, _stocks) {
 		let stocksUI = document.getElementById('stocks');
 
 		for (let i = 0; i < this.#stocks.length; i++) {
@@ -216,6 +216,7 @@ class StocksManager {
 			buySell.appendChild(createTransactionButton(['button', 'sell1k'], '-1k', -1000));
 			buySell.appendChild(createTransactionButton(['button', 'buy1k'], '+1k', 1000));
 			buySell.appendChild(createTransactionButton(['button', 'buy10k'], '+10k', 10000));
+			buySell.appendChild(this.#customBuySell(_errorManager, _portfolioManager, _transactionManager, _stocks, i));
 
 			polyline.classList.add('polyline-graph');
 
@@ -245,6 +246,64 @@ class StocksManager {
 
 			stocksUI.appendChild(stock);
 		}
+	}
+
+	#customBuySell(_errorManager, _portfolioManager, _transactionManager, _stocks, _i) {
+		let element = document.createElement('div');
+		let input = document.createElement('input');
+
+		input.classList.add('custom-transaction-input');
+		input.placeholder = 'Stock count...';
+		input.type = 'number';
+
+		let createButtons = (_classArr, _text, _eventFunction) => {
+			let button = document.createElement('p');
+			for (let className of _classArr) {
+				button.classList.add(className);
+			}
+			button.innerText = _text;
+			button.addEventListener('click', _eventFunction);
+			return button;
+		};
+
+		element.classList.add('custom-transaction');
+		element.appendChild(input);
+
+		element.appendChild(createButtons(['custom-transaction-sell', 'button'], 'SELL', async () => {
+			try {
+				let amount = parseInt(input.value);
+				console.log(amount);
+				if (amount > 0) {
+					let response = await _transactionManager.push(_stocks[_i].name, amount * -1);
+					if (response) {
+						_portfolioManager.setPosition(_i, amount * -1, _stocks);
+					}
+				} else {
+					_errorManager.push('INVALID INPUT: accepted: number > 0');
+				}
+			} catch (error) {
+				_errorManager.push('INVALID INPUT: accepted: number > 0\n' + error.message);
+			}
+		}));
+
+		element.appendChild(createButtons(['custom-transaction-buy', 'button'], 'BUY', async () => {
+			try {
+				let amount = parseInt(input.value);
+				console.log(amount);
+				if (amount > 0) {
+					let response = await _transactionManager.push(_stocks[_i].name, amount);
+					if (response) {
+						_portfolioManager.setPosition(_i, amount, _stocks);
+					}
+				} else {
+					_errorManager.push('INVALID INPUT: accepted: number > 0');
+				}
+			} catch (error) {
+				_errorManager.push('INVALID INPUT: accepted: number > 0\n' + error.message);
+			}
+		}));
+
+		return element;
 	}
 
 	/**
@@ -942,7 +1001,7 @@ window.onload = async () => {
 	let newsManager = new NewsManager(errorManager, 10);
 
 	await stocksManager.init();
-	stocksManager.createStocksUI(portfolioManager, transactionManager, stocksManager.getStocks());
+	stocksManager.createStocksUI(errorManager, portfolioManager, transactionManager, stocksManager.getStocks());
 
 	await portfolioManager.init();
 	await portfolioManager.initPortfolioUI(stocksManager.getStocks());

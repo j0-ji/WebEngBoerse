@@ -392,6 +392,12 @@ class StocksManager {
 }
 
 //=================================================================//
+//=== BUY/SELL ORDERS =============================================//
+//=================================================================//
+
+// Zeitlich nicht mehr geschafft...
+
+//=================================================================//
 //=== PORTFOLIO ===================================================//
 //=================================================================//
 
@@ -731,7 +737,7 @@ class RankingManager {
 			let money = document.createElement('p');
 
 			name.innerText = this.#ranking[i].name;
-			money.innerText = this.#ranking[i].summe;
+			money.innerText = Math.round(this.#ranking[i].summe);
 
 			player.appendChild(name);
 			player.appendChild(money);
@@ -772,7 +778,7 @@ class RankingManager {
 
 		for (let i = 0; i < list.length; i++) {
 			list[i].firstChild.innerText = this.#ranking[i].name;
-			list[i].lastChild.innerText = this.#ranking[i].summe;
+			list[i].lastChild.innerText = Math.round(this.#ranking[i].summe);
 		}
 	}
 

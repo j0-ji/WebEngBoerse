@@ -1,38 +1,30 @@
 'use strict';
 
 //=================================================================//
-//=== UTIL ))======================================================//
-//=================================================================//
-
-class Util {
-	static correctTime(_time) {
-		let temp = _time.split(':');
-		let temp2;
-		if (parseInt(temp[1]) === 0) {
-			temp2 = temp[0] + ':00';
-		} else {
-			temp2 = _time;
-		}
-		return temp2;
-	}
-}
-
-//=================================================================//
 //=== HEADER ======================================================//
 //=================================================================//
-
+/**
+ * Class for displaying the balance and name of the user.
+ * */
 class BalanceManager {
 	#username;
 	#currentBalance;
 	#initBalance;
 	#errorManager;
 
+	/**
+	 * Constructor for the balance-manager.
+	 * @param _errorManager - instance of the ErrorManager-class
+	 * @see ErrorManager
+	 * */
 	constructor(_errorManager) {
 		this.#errorManager = _errorManager;
 	}
 
 	/**
-	 * short initial function for displaying the users name and current balance (and percent).
+	 * Short initial method for initializing the BalanceManager and
+	 * displaying the users name and current balance (and percent).
+	 * @public
 	 * */
 	async init() {
 		try {
@@ -52,9 +44,10 @@ class BalanceManager {
 	}
 
 	/**
-	 * Function for getting the current balance of the user and updating the available data..
-	 * Should be called inside a setIntervall to assure continuous updates. TODO: add this line to all repeatable
+	 * Method for getting the current balance of the user and updating the available data.
+	 * Should be called inside a setIntervall to assure continuous updates.
 	 * functions
+	 * @public
 	 * */
 	async updateBalance() {
 		try {
@@ -76,16 +69,19 @@ class BalanceManager {
 	}
 
 	/**
-	 * Simple function to get the percent (+/-) since Session start for the user.
+	 * Simple method to get the percent (+/-) since Session start for the user.
+	 * @return number
+	 * @private
 	 * */
 	#getPercent() {
 		return Number((((this.#currentBalance - this.#initBalance) * 100) / this.#initBalance).toFixed(2));
 	}
 
 	/**
-	 * Function fetching the current user-data.
+	 * Method for fetching the current user-data.
 	 * @returns Object - Object containing stock-data
 	 * @throws Error - error with code
+	 * @private
 	 * */
 	async #fetchUserData() {
 		let response = await fetch('/api/benutzerdaten', {
@@ -104,7 +100,9 @@ class BalanceManager {
 //=================================================================//
 //=== STOCKS ======================================================//
 //=================================================================//
-
+/**
+ * Class for managing stocks
+ * */
 class StocksManager {
 	#stocks;
 	#maxHistory;
@@ -112,6 +110,13 @@ class StocksManager {
 	#svgViewBoxHeight;
 	#errorManager;
 
+	/**
+	 * Constructor for the stocks-manager.
+	 * @param _errorManager - instance of the ErrorManager-class
+	 * @param _maxHistory - [int] number past stock-prices saved in the history-array
+	 * @param _svgHeight - [int] height of the SVG images used for displaying the stock-graphs
+	 * @see ErrorManager
+	 * */
 	constructor(_errorManager, _maxHistory, _svgHeight) {
 		this.#errorManager = _errorManager;
 		this.#stocks = [];
@@ -120,6 +125,11 @@ class StocksManager {
 		this.#svgns = 'http://www.w3.org/2000/svg';
 	}
 
+	/**
+	 * Method used for initializing the StocksManager Object
+	 * @return void
+	 * @public
+	 * */
 	async init() {
 		try {
 			this.#stocks = await this.#fetchStocks();
@@ -131,13 +141,16 @@ class StocksManager {
 
 	/**
 	 * Simple getter for the private #stocks-attribute
+	 * @return Array - used for storing all stocks
+	 * @public
 	 * */
 	getStocks() {
 		return this.#stocks;
 	}
 
 	/**
-	 * Function adding a history-array to all the stocks available in the private #stocks-Array.
+	 * Method adding a history-array to all the stocks available in the private #stocks-Array.
+	 * @private
 	 * */
 	#addAttributes() {
 		if (this.#stocks.length > 0) {
@@ -153,6 +166,7 @@ class StocksManager {
 	 * Function fetching the current stocks-data.
 	 * @returns Object - Object containing stock-data
 	 * @throws Error - error with code
+	 * @private
 	 * */
 	async #fetchStocks() {
 		let response = await fetch('/api/aktien', {
@@ -168,7 +182,9 @@ class StocksManager {
 	}
 
 	/**
-	 * Function which gets the current stock-data and updates the stocks-obj.
+	 * Method which gets the current stock-data and updates the stocks-obj.
+	 * Should be called inside a setIntervall to assure continuous updates.
+	 * @public
 	 * */
 	async updateStocks() {
 		let temp = await this.#fetchStocks();
@@ -184,7 +200,7 @@ class StocksManager {
 	}
 
 	/**
-	 * Function to create the UI for all stocks.
+	 * Method to create the UI for all stocks.
 	 * */
 	createStocksUI(_errorManager, _portfolioManager, _transactionManager, _stocks) {
 		let stocksUI = document.getElementById('stocks');
@@ -195,6 +211,7 @@ class StocksManager {
 			let polyline = document.createElementNS(this.#svgns, 'polyline');
 			let buySell = document.createElement('div');
 
+			// short mini function for creating buttons more easily and prevent code duplication
 			let createTransactionButton = (_classArr, _text, _stockCount) => {
 				let button = document.createElement('p');
 				for (let className of _classArr) {
@@ -216,7 +233,7 @@ class StocksManager {
 			buySell.appendChild(createTransactionButton(['button', 'sell1k'], '-1k', -1000));
 			buySell.appendChild(createTransactionButton(['button', 'buy1k'], '+1k', 1000));
 			buySell.appendChild(createTransactionButton(['button', 'buy10k'], '+10k', 10000));
-			buySell.appendChild(this.#customBuySell(_errorManager, _portfolioManager, _transactionManager, _stocks, i));
+			buySell.appendChild(this.#customBuySellUI(_errorManager, _portfolioManager, _transactionManager, _stocks, i));
 
 			polyline.classList.add('polyline-graph');
 
@@ -225,6 +242,7 @@ class StocksManager {
 			svg.role = 'img';
 			svg.appendChild(polyline);
 
+			// short mini function for creating the info-elements more easily and prevent code duplication
 			let createStockInfoElements = (_classArr, _text, _title) => {
 				let element = document.createElement('p');
 				for (let className of _classArr) {
@@ -248,14 +266,19 @@ class StocksManager {
 		}
 	}
 
-	#customBuySell(_errorManager, _portfolioManager, _transactionManager, _stocks, _i) {
+	/**
+	 * Private method creating the UI elements for buying and selling custom stock-amounts.
+	 * @return HTMLElement
+	 * */
+	#customBuySellUI(_errorManager, _portfolioManager, _transactionManager, _stocks, _i) {
 		let element = document.createElement('div');
 		let input = document.createElement('input');
 
 		input.classList.add('custom-transaction-input');
-		input.placeholder = 'Stock count...';
+		input.placeholder = 'Stock amount...';
 		input.type = 'number';
 
+		// short mini function for creating buttons more easily and prevent code duplication
 		let createButtons = (_classArr, _text, _eventFunction) => {
 			let button = document.createElement('p');
 			for (let className of _classArr) {
@@ -307,7 +330,9 @@ class StocksManager {
 	}
 
 	/**
-	 * Function for updating the stock UIs. It updates the graph, the current price and the available stock-count.
+	 * Method for updating the stock UIs. It updates the graph, the current price and the available stock-amount.
+	 * Should be called inside a setIntervall to assure continuous updates.
+	 * @public
 	 * */
 	updateStocksUI() {
 		let stockCharts = document.getElementsByClassName('stock-chart');
@@ -338,9 +363,11 @@ class StocksManager {
 
 	/**
 	 * FOR BETTER UX (USER-EXPERIENCE)
-	 * Changes the stock-box' background color depending on the mean of the last 9 (plus current) price-values.
-	 * If the current price is less than the mean, background is set red. If it's more than the mean background is
-	 * green. Last but not least, background is grey again if the current price is equal to the mean.
+	 * Changes the stock-box' background color depending on the mean of the last n-1 (excluding the latest)
+	 * price-values. If the current price is less than the mean, background is set red. If it's more than the mean
+	 * background is green. Last but not least, background is grey again if the current price is equal to the mean or 1.
+	 * Should be called inside a setIntervall to assure continuous updates.
+	 * @public
 	 * */
 	highlightStocks() {
 		let stockUIs = document.getElementsByClassName('stock');
@@ -379,6 +406,7 @@ class StocksManager {
 	 * Simple function calculating the mean of a given array of integer type.
 	 * @param _arr - int array
 	 * @return int - the mean of the int-array
+	 * @private
 	 * */
 	#average(_arr) {
 		let num = 0;
@@ -400,13 +428,21 @@ class StocksManager {
 //=================================================================//
 //=== PORTFOLIO ===================================================//
 //=================================================================//
-
+/**
+ * Class for managing everything portfolio related.
+ * */
 class PortfolioManager {
 	#positionen;
 	#wert;
 	#transactionManager;
 	#errorManager;
 
+	/**
+	 * Constructor for the portfolio-manager.
+	 * @param _errorManager - instance of the ErrorManager-class
+	 * @param _transactionManager - instance of the TransactionManager
+	 * @see ErrorManager
+	 * */
 	constructor(_errorManager, _transactionManager) {
 		this.#positionen = [];
 		this.#wert = 0;
@@ -414,6 +450,11 @@ class PortfolioManager {
 		this.#transactionManager = _transactionManager;
 	}
 
+	/**
+	 * Method used for initializing the PortfolioManager.
+	 * @return void
+	 * @public
+	 * */
 	async init() {
 		try {
 			let data = await this.#fetchPortfolio();
@@ -428,6 +469,7 @@ class PortfolioManager {
 	 * Method fetching the players current portfolio-data.
 	 * @return Object - player-portfolio
 	 * @throws Error - error with code
+	 * @private
 	 * */
 	async #fetchPortfolio() {
 		let response = await fetch('/api/depot', {
@@ -446,6 +488,7 @@ class PortfolioManager {
 	 * Method for initializing the Portfolio UI.
 	 * @param _stocks - array of stocks with current stock-data
 	 * @return void
+	 * @public
 	 * */
 	initPortfolioUI(_stocks) {
 		let positions = document.getElementById('positions');
@@ -465,8 +508,11 @@ class PortfolioManager {
 	 * @param _i - Index, damit eindeutig ist um welche Aktie es sich handelt
 	 * @param _stocks - array of stocks with current stock-data
 	 * @return Element - returns the ready to use HTML-Element
+	 * @private
 	 * */
 	#createPositionUI(_i, _stocks) {
+		// Have not shortened the method with small sub-functions, because it didn't really made
+		// the code shorter, but much more incomprehensible.
 		let position = document.createElement('div');
 		let name = document.createElement('p');
 		let sellAll = document.createElement('p');
@@ -524,6 +570,11 @@ class PortfolioManager {
 		return position;
 	}
 
+	/**
+	 * Method for updating the portfolio-value display
+	 * Should be called inside a setIntervall to assure continuous updates.
+	 * @public
+	 * */
 	updatePortfolio(_stocks) {
 		this.#wert = 0;
 
@@ -537,7 +588,8 @@ class PortfolioManager {
 	}
 
 	/**
-	 * updates the position on the given index with the given stock amount.
+	 * Method, which updates the position on the given index with the given stock amount.
+	 * @public
 	 * */
 	setPosition(_i, _stockAmount, _stocks) {
 		this.#positionen[_i].anzahl += _stockAmount;
@@ -562,6 +614,12 @@ class TransactionManager {
 	#list;
 	#maxTransactions;
 
+	/**
+	 * Constructor for the transactions-manager.
+	 * @param _errorManager - instance of the ErrorManager-class
+	 * @param _maxTransactions - [int] number of transactions shown in UI
+	 * @see ErrorManager
+	 * */
 	constructor(_errorManager, _maxTransactions) {
 		this.#errorManager = _errorManager;
 		this.#list = [];
@@ -573,6 +631,7 @@ class TransactionManager {
 	 * @param _stockName - name of the stock
 	 * @param _count - number of stocks [positive number - buy amount | negative number - sell amount]
 	 * @returns boolean - true: success / false: fail
+	 * @public
 	 * */
 	// Bewusst nicht in die #transaction method integriert, um einen besseren Überblick darüber zu haben,
 	// was passiert, wie es passiert und wann es passiert.
@@ -589,11 +648,12 @@ class TransactionManager {
 	}
 
 	/**
-	 * Function for buying/selling stocks.
+	 * Method for buying/selling stocks.
 	 * @param _stockName - name of the stock
 	 * @param _count - number of stocks [positive number - buy amount | negative number - sell amount]
 	 * @returns Object - Object containing stocks
 	 * @throws Error - either 'invalid transaction'-error or an error with its code.
+	 * @private
 	 * */
 	async #transaction(_stockName, _count) {
 		let response = await fetch('/api/umsaetze', {
@@ -623,6 +683,7 @@ class TransactionManager {
 	 * Method for building the DOM-Element needed to display a Transaction.
 	 * @param _i - index variable needed to address the right transaction
 	 * @returns void
+	 * @private
 	 * */
 	#buildTransactionDOM(_i) {
 		let element = document.createElement('div');
@@ -655,6 +716,7 @@ class TransactionManager {
 	/**
 	 * Method for updating the list with transactions.
 	 * @returns void
+	 * @private
 	 * */
 	#updateTransactionList() {
 		while (this.#list.length > this.#maxTransactions) {
@@ -691,7 +753,7 @@ class RankingManager {
 	}
 
 	/**
-	 * Short init function for initializing the Array of people/wealth and the UI.
+	 * Short init method for initializing the Array of people/wealth and the UI.
 	 * @public
 	 * */
 	async init() {
@@ -705,7 +767,7 @@ class RankingManager {
 	}
 
 	/**
-	 * Function for getting the Portfolio values and according player names of everyone.
+	 * Method for getting the Portfolio values and according player names of everyone.
 	 * @return Object - portfolios with name/value of everyone
 	 * @throws Error - error with code
 	 * @private
@@ -724,7 +786,7 @@ class RankingManager {
 	}
 
 	/**
-	 * Function creating the ranking UI. Caution: The prerequisite for guaranteeing functionality
+	 * Method creating the ranking UI. Caution: The prerequisite for guaranteeing functionality
 	 * is that the number of players does not change without a server restart.
 	 * @private
 	 * */
@@ -764,6 +826,7 @@ class RankingManager {
 
 	/**
 	 * An updater for the ranking UI. It updates the positions of the players according their wealth.
+	 * Should be called inside a setIntervall to assure continuous updates.
 	 * @public
 	 * */
 	async updateRankingUI() {
@@ -804,6 +867,12 @@ class NewsManager {
 	#maxNews;
 	#updated;
 
+	/**
+	 * Constructor for the ranking-manager.
+	 * @param _errorManager - instance of the ErrorManager-class
+	 * @param _maxNews - [int] number of news displayed in the list
+	 * @see ErrorManager
+	 * */
 	constructor(_errorManager, _maxNews) {
 		this.#errorManager = _errorManager;
 		this.#news = [];
@@ -812,10 +881,43 @@ class NewsManager {
 		this.#updated = false;
 	}
 
-	async init() {
-		await this.updateNewsUI();
+	/**
+	 * Method updating the news-UI and backend.
+	 * Should be called inside a setIntervall to assure continuous updates.
+	 * @public
+	 * */
+	async updateNewsUI() {
+		await this.#updateNews();
+		if (this.#updated) {
+			// element containing the news
+			let newsList = document.getElementById('news-list');
+			// list of the single news-elements
+			let listOfNews = document.getElementsByClassName('news');
+
+			for (let i = 0; i < this.#news.length; i++) {
+				// editing the news message
+				try {
+					this.#news[i].text = this.#adaptNewsMessage(this.#news[i].text);
+				} catch (error) {
+					this.#errorManager.push(error.message);
+				}
+
+				// if we don't have more news than news-DOM-Elements already exist, we create a new DOM-Element with
+				// the needed information. Otherwise, we just change the content of what we already have.
+				if (i >= listOfNews.length) {
+					this.#createNewsUI(newsList, i);
+				} else {
+					listOfNews[i].firstChild.innerText = this.#correctUhrzeit(this.#news[i].uhrzeit);
+					listOfNews[i].lastChild.innerText = this.#news[i].text;
+				}
+			}
+		}
 	}
 
+	/**
+	 * Method for updating the news-backend
+	 * @private
+	 * */
 	async #updateNews() {
 		try {
 			let temp = await this.#fetchNews();
@@ -865,6 +967,10 @@ class NewsManager {
 		}
 	}
 
+	/**
+	 * Method for creating and adding new Elements to the news-list
+	 * @private
+	 * */
 	#createNewsUI(_listElement, _i) {
 		let element = document.createElement('div');
 		let time = document.createElement('p');
@@ -881,34 +987,6 @@ class NewsManager {
 		element.appendChild(message);
 
 		_listElement.append(element);
-	}
-
-	async updateNewsUI() {
-		await this.#updateNews();
-		if (this.#updated) {
-			// element containing the news
-			let newsList = document.getElementById('news-list');
-			// list of the single news-elements
-			let listOfNews = document.getElementsByClassName('news');
-
-			for (let i = 0; i < this.#news.length; i++) {
-				// editing the news message
-				try {
-					this.#news[i].text = this.#adaptNewsMessage(this.#news[i].text);
-				} catch (error) {
-					this.#errorManager.push(error.message);
-				}
-
-				// if we don't have more news than news-DOM-Elements already exist, we create a new DOM-Element with
-				// the needed information. Otherwise, we just change the content of what we already have.
-				if (i >= listOfNews.length) {
-					this.#createNewsUI(newsList, i);
-				} else {
-					listOfNews[i].firstChild.innerText = this.#correctUhrzeit(this.#news[i].uhrzeit);
-					listOfNews[i].lastChild.innerText = this.#news[i].text;
-				}
-			}
-		}
 	}
 
 	/**
@@ -949,12 +1027,25 @@ class NewsManager {
 //=================================================================//
 //=== ERROR =======================================================//
 //=================================================================//
+/**
+ * Class for managing errors that may occur.
+ * */
 class ErrorManager {
+
+	/**
+	 * Constructor for the ranking-manager.
+	 * @param _maxErrors - [int] max number of errors displayed in the list
+	 * @see ErrorManager
+	 * */
 	constructor(_maxErrors) {
 		this.errors = [];
 		this.maxErrors = _maxErrors + 1; // for correct calculations
 	}
 
+	/**
+	 * Method for adding a new Error to the List
+	 * @public
+	 * */
 	push(_errorMessage) {
 		this.errors.push(_errorMessage);
 
@@ -965,6 +1056,10 @@ class ErrorManager {
 		this.#updateErrorsList();
 	}
 
+	/**
+	 * Method for building an error-UI-element and adding it to the list.
+	 * @private
+	 * */
 	#buildErrorDOM(_message) {
 		let element = document.createElement('div');
 		let message = document.createElement('p');
@@ -983,6 +1078,11 @@ class ErrorManager {
 		}, 500);
 	}
 
+	/**
+	 * Method for updating the list. Checks if max amount of errors is reached
+	 * and removes the oldest one if necessary.
+	 * @private
+	 * */
 	#updateErrorsList() {
 		if (this.errors.length < this.maxErrors) {
 			this.#buildErrorDOM(this.errors[this.errors.length - 1]);
@@ -996,7 +1096,9 @@ class ErrorManager {
 //=================================================================//
 //=== INIT ========================================================//
 //=================================================================//
-
+/**
+ * Function which is run after loading.
+ * */
 window.onload = async () => {
 	let errorManager = new ErrorManager(5);
 	let transactionManager = new TransactionManager(errorManager, 10);
@@ -1016,8 +1118,9 @@ window.onload = async () => {
 
 	await rankingManager.init();
 
-	await newsManager.init();
+	await newsManager.updateNewsUI(); // didn't need an init in this case.
 
+	// intervall for repeating tasks
 	setInterval(async () => {
 		await balanceManager.updateBalance();
 
